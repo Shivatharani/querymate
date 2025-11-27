@@ -636,14 +636,6 @@ npm run dev
 - **Issues**: [Report bugs or request features](https://github.com/Jaswanth1406/QueryMate/issues)
 - **Discussions**: [Join the conversation](https://github.com/Jaswanth1406/QueryMate/discussions)
 
-## 🙏 Acknowledgments
-
-- [Vercel AI SDK](https://sdk.vercel.ai) for seamless AI integration
-- [Better Auth](https://better-auth.com) for robust authentication
-- [Drizzle ORM](https://orm.drizzle.team) for type-safe database queries
-- [Radix UI](https://radix-ui.com) for accessible components
-- [Tailwind CSS](https://tailwindcss.com) for beautiful styling
-
 ### Deploy on Vercel
 
 1. **Fork or Clone the Repository**
@@ -849,6 +841,17 @@ erDiagram
 - **Students**: Learn and get explanations from multiple AI perspectives
 - **Professionals**: Compare AI responses for better decision-making
 
+## 🌟 Roadmap
+
+- [ ] Voice input support
+- [ ] File upload and analysis
+- [ ] Export conversations to PDF/Markdown
+- [ ] Shared conversations with public links
+- [ ] Custom AI model parameters (temperature, max tokens)
+- [ ] Mobile app (React Native)
+- [ ] Claude 4 and GPT-4 integration
+- [ ] Team workspaces
+
 ## 📝 License
 
 MIT License - feel free to use this project for personal or commercial purposes.
@@ -866,7 +869,6 @@ Contributions are welcome! Here's how you can help:
 
 ```bash
 git clone https://github.com/Jaswanth1406/QueryMate.git
-cd QueryMate
 npm install
 cp .env.example .env.local  # Add your API keys
 npx drizzle-kit push
@@ -878,6 +880,14 @@ npm run dev
 - **GitHub**: [@Jaswanth1406](https://github.com/Jaswanth1406)
 - **Issues**: [Report bugs or request features](https://github.com/Jaswanth1406/QueryMate/issues)
 - **Discussions**: [Join the conversation](https://github.com/Jaswanth1406/QueryMate/discussions)
+
+## 🙏 Acknowledgments
+
+- [Vercel AI SDK](https://sdk.vercel.ai) for seamless AI integration
+- [Better Auth](https://better-auth.com) for robust authentication
+- [Drizzle ORM](https://orm.drizzle.team) for type-safe database queries
+- [Radix UI](https://radix-ui.com) for accessible components
+- [Tailwind CSS](https://tailwindcss.com) for beautiful styling
 
 ---
 
