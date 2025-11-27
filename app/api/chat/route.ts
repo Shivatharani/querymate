@@ -104,8 +104,13 @@ export async function POST(req: Request) {
         generatedTitle += chunk;
       }
 
-      // Clean up the title
+      // Clean up the title and limit length
       generatedTitle = generatedTitle.replace(/['"]/g, "").trim();
+      
+      // Truncate title if it's too long (max 50 characters)
+      if (generatedTitle.length > 50) {
+        generatedTitle = generatedTitle.substring(0, 47) + "...";
+      }
 
       // Update conversation with generated title
       await db

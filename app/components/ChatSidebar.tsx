@@ -217,23 +217,23 @@ export default function ChatSidebar({
                     return (
                       <div
                         key={chat.id}
-                        className={`flex items-center rounded-xl transition-all duration-200 px-2 py-1 ${
+                        className={`flex items-center gap-2 rounded-xl transition-all duration-200 px-2 py-1 ${
                           activeId === chat.id
                             ? "bg-gradient-to-r from-purple-100 to-fuchsia-100 shadow-sm"
                             : "hover:bg-gray-100"
                         }`}
                       >
                         <button
-                          className="text-left flex-1 min-w-0 px-2 py-2 font-medium text-sm truncate text-gray-800"
+                          className="text-left flex-1 min-w-0 px-2 py-2 font-medium text-sm text-gray-800"
                           onClick={() => {
                             setActiveId(chat.id);
                             onSelectConversation(chat.id, chatTitle);
                             setOpen(false);
                           }}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                            <span className="truncate">{chatTitle}</span>
+                            <span className="truncate block">{chatTitle}</span>
                           </div>
                         </button>
 
@@ -242,7 +242,7 @@ export default function ChatSidebar({
                           <DropdownMenu.Trigger asChild>
                             <button
                               type="button"
-                              className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
                               onClick={(e) => e.stopPropagation()}
                               aria-label="Conversation options"
                             >
