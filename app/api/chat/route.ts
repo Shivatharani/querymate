@@ -93,7 +93,7 @@ export async function POST(req: Request) {
         messages: [
           { 
             role: "system", 
-            content: "Summarize the user's message into a short 3-5 word title. Output ONLY the title, no quotes or punctuation." 
+            content: "Summarize the user's message into a short 3 word title. Output ONLY 3 words, no quotes or punctuation." 
           },
           { role: "user", content: message }
         ]
@@ -107,9 +107,9 @@ export async function POST(req: Request) {
       // Clean up the title and limit length
       generatedTitle = generatedTitle.replace(/['"]/g, "").trim();
       
-      // Truncate title if it's too long (max 50 characters)
-      if (generatedTitle.length > 50) {
-        generatedTitle = generatedTitle.substring(0, 47) + "...";
+      // Truncate title if it's too long (max 30 characters)
+      if (generatedTitle.length > 30) {
+        generatedTitle = generatedTitle.substring(0, 2) + "...";
       }
 
       // Update conversation with generated title
