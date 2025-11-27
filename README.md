@@ -1,27 +1,66 @@
 # QueryMate 🤖
 
-A modern AI-powered chat application built with Next.js, featuring secure authentication, conversation management, and Google Gemini AI integration.
+A modern, powerful AI chat application that lets you interact with multiple AI providers in one place. Built with Next.js 15, featuring real-time streaming responses, secure authentication, and a beautiful UI.
+
+## ✨ Key Features
+
+### 🎯 Multi-AI Provider Support
+- **Google Gemini**: Fast and intelligent responses
+- **Perplexity AI**: Real-time web search and citations
+- **Amazon Bedrock**: Enterprise-grade Claude models
+- Switch between AI models seamlessly within conversations
+
+### 💬 Advanced Chat Features
+- Real-time streaming responses with elegant typing indicators
+- Markdown support for rich text formatting (code blocks, lists, headings)
+- Conversation history with persistent storage
+- Auto-generated conversation titles using AI
+- Message history with timestamps
+
+### 🔐 Secure Authentication
+- Email/Password authentication
+- OAuth support (Google & GitHub)
+- JWT token-based session management
+- Protected API routes with Bearer authentication
+
+### 🎨 Modern UI/UX
+- Beautiful gradient designs with smooth animations
+- Responsive layout for desktop and mobile
+- Sidebar for conversation management
+- Scroll-to-bottom on new messages
+- Loading states and error handling
+
+### 📱 Conversation Management
+- Create unlimited conversations
+- Update conversation titles
+- Delete conversations with cascade message deletion
+- Load chat history instantly
+- Sidebar navigation between chats
 
 ## 🚀 Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Database**: PostgreSQL (Supabase)
 - **ORM**: Drizzle ORM
 - **Authentication**: Better Auth
-- **AI Model**: Google Gemini (gemini-1.5-flash-latest)
+- **AI Providers**: 
+  - Google Gemini (via @ai-sdk/google)
+  - Perplexity AI (via @ai-sdk/perplexity)
+  - Amazon Bedrock (via @ai-sdk/amazon-bedrock)
 - **AI SDK**: Vercel AI SDK
+- **UI Components**: Radix UI
+- **Styling**: Tailwind CSS
+- **Markdown**: react-markdown
 
-## 📋 Features
+## 🎯 What Makes QueryMate Special?
 
-- ✅ Email/Password Authentication with Better Auth
-- ✅ OAuth Support (Google, GitHub)
-- ✅ Real-time AI Chat powered by Google Gemini
-- ✅ Conversation Management (Create, List, History)
-- ✅ Message History Storage
-- ✅ Auto-conversation Creation
-- ✅ Bearer Token Authentication for REST APIs
-- ✅ Secure Session Management
+1. **Multiple AI Models in One Place**: Switch between Google Gemini, Perplexity, and Amazon Bedrock without leaving your conversation
+2. **Real-time Streaming**: See AI responses as they're generated, not after completion
+3. **Smart Context Management**: AI remembers your entire conversation history
+4. **Beautiful UI**: Carefully crafted interface with smooth animations and gradients
+5. **Fully Featured API**: Build your own frontend or integrate with existing apps
+6. **Type-Safe**: Built with TypeScript for reliable, maintainable code
 
 ## 🛠️ Installation
 
@@ -68,15 +107,19 @@ GOOGLE_CLIENT_SECRET=xxxx
 GITHUB_CLIENT_ID=xxxx
 GITHUB_CLIENT_SECRET=xxxx
 
-# --- AWS BEDROCK ---
-AWS_ACCESS_KEY_ID=xxxx
-AWS_SECRET_ACCESS_KEY=xxxx
-AWS_REGION=us-east-1
-BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
-
 # --- GOOGLE GEMINI ---
-GOOGLE_API_KEY=xxxx
-GEMINI_MODEL=gemini-2.5-flash
+GOOGLE_API_KEY=your_google_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash-exp
+
+# --- PERPLEXITY AI ---
+PERPLEXITY_API_KEY=your_perplexity_api_key
+PERPLEXITY_MODEL=llama-3.1-sonar-large-128k-online
+
+# --- AWS BEDROCK ---
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=us-east-1
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0
 
 ```
 
@@ -331,6 +374,7 @@ Content-Type: application/json
 {
   "message": "What is machine learning?",
   "conversationId": "conv_789",
+  "model": "gemini",
   "title": "ML Discussion"
 }
 ```
@@ -338,451 +382,85 @@ Content-Type: application/json
 **Parameters:**
 
 - `message` (required): The user's message text
+- `model` (optional, default: "gemini"): AI model to use ("gemini", "perplexity", or "bedrock")
 - `conversationId` (optional): ID of existing conversation. If omitted, creates new conversation
 - `title` (optional): Title for new conversation (only used when conversationId not provided)
 
 **Response:** Streaming text response from AI (Server-Sent Events)
 
+**Example with different AI models:**
+
+```javascript
+// Use Google Gemini
+fetch('/api/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    message: "Explain quantum computing",
+    model: "gemini"
+  })
+});
+
+// Use Perplexity (with real-time web search)
+fetch('/api/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    message: "What's the latest news on AI?",
+    model: "perplexity"
+  })
+});
+
+// Use Amazon Bedrock (Claude)
+fetch('/api/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    message: "Write a poem about technology",
+    model: "bedrock"
+  })
+});
+```
+
 > **Note**: The `/api/chat` endpoint returns streaming responses. For testing in Postman, you'll see status 200 but the response body streams over time. Check the database `messages` table to verify AI responses are saved.
 
-## 🎨 Frontend Integration Guide
-
-### Setup Authentication
-
-```javascript
-// Sign up new user
-async function signUp(email, password, name) {
-  const response = await fetch('/api/auth/sign-up/email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name })
-  });
-  const data = await response.json();
-  
-  // Save token to localStorage or state management
-  localStorage.setItem('token', data.token);
-  return data;
-}
-
-// Sign in existing user
-async function signIn(email, password) {
-  const response = await fetch('/api/auth/sign-in/email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
-  const data = await response.json();
-  
-  localStorage.setItem('token', data.token);
-  return data;
-}
-
-// Get current user session
-async function getCurrentUser(token) {
-  const response = await fetch('/api/auth/sessions', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return await response.json();
-}
-
-// Sign out user
-async function signOut(token) {
-  const response = await fetch('/api/auth/sign-out', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  
-  // Clear token from storage
-  localStorage.removeItem('token');
-  
-  return await response.json();
-}
-```
-
-### Load User's Conversations (Sidebar)
-
-```javascript
-async function getConversations(token) {
-  const response = await fetch('/api/conversations', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const data = await response.json();
-  
-  // data.conversations = [{ id, title, createdAt }, ...]
-  return data.conversations;
-}
-```
-
-### Update Conversation Title
-
-```javascript
-async function updateConversationTitle(token, conversationId, newTitle) {
-  const response = await fetch('/api/conversations', {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      id: conversationId,
-      title: newTitle
-    })
-  });
-  const data = await response.json();
-  
-  return data.conversation;
-}
-```
-
-### Delete Conversation
-
-```javascript
-async function deleteConversation(token, conversationId) {
-  const response = await fetch('/api/conversations', {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      id: conversationId
-    })
-  });
-  const data = await response.json();
-  
-  // data.message = "Conversation & messages deleted"
-  return data;
-}
-```
-
-### Start New Chat
-
-```javascript
-// When user types first message in new chat
-async function startNewChat(token, userMessage, chatTitle = "New Chat") {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message: userMessage,
-      title: chatTitle
-    })
-  });
-  
-  // Response is streaming, but conversationId is returned
-  // Save this conversationId for subsequent messages
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  
-  let conversationId = null;
-  let aiResponse = '';
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-  
-    const text = decoder.decode(value);
-    aiResponse += text;
-  
-    // Update UI with streaming response
-    updateChatUI(text);
-  }
-  
-  return { conversationId, aiResponse };
-}
-```
-
-### Continue Existing Chat
-
-```javascript
-// When user sends message in existing conversation
-async function sendMessage(token, conversationId, userMessage) {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      conversationId: conversationId, // Pass existing conversation ID
-      message: userMessage
-    })
-  });
-  
-  // Handle streaming response
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let aiResponse = '';
-  
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-  
-    const text = decoder.decode(value);
-    aiResponse += text;
-    updateChatUI(text);
-  }
-  
-  return aiResponse;
-}
-```
-
-### Load Chat History
-
-```javascript
-// When user clicks a conversation from sidebar
-async function loadChatHistory(token, conversationId) {
-  const response = await fetch(
-    `/api/messages?conversationId=${conversationId}`,
-    {
-      headers: { 'Authorization': `Bearer ${token}` }
-    }
-  );
-  const data = await response.json();
-  
-  // data.messages = [{ role: 'user'|'assistant', content, createdAt }, ...]
-  return data.messages;
-}
-```
-
-### Complete React Example
-
-```jsx
-import { useState, useEffect } from 'react';
-
-function ChatApp() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [conversations, setConversations] = useState([]);
-  const [currentConversationId, setCurrentConversationId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [user, setUser] = useState(null);
-  // Load conversations and user on mount
-  useEffect(() => {
-    if (token) {
-      loadConversations();
-      loadUser();
-    }
-  }, [token]);
-
-  async function loadUser() {
-    const response = await fetch('/api/auth/sessions', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await response.json();
-    setUser(data.user);
-  }
-  }, [token]);
-
-  async function loadConversations() {
-    const response = await fetch('/api/conversations', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await response.json();
-    setConversations(data.conversations);
-  }
-
-  async function loadMessages(conversationId) {
-    const response = await fetch(
-      `/api/messages?conversationId=${conversationId}`,
-      {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }
-    );
-    const data = await response.json();
-    setMessages(data.messages);
-    setCurrentConversationId(conversationId);
-  }
-
-  async function deleteConversation(conversationId) {
-    const response = await fetch('/api/conversations', {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ id: conversationId })
-    });
-    
-    if (response.ok) {
-      // Remove from UI
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-      
-      // Clear messages if deleting current conversation
-      if (currentConversationId === conversationId) {
-        setMessages([]);
-        setCurrentConversationId(null);
-      }
-    }
-  }
-
-  async function updateTitle(conversationId, newTitle) {
-    const response = await fetch('/api/conversations', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ id: conversationId, title: newTitle })
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      setConversations(prev => 
-        prev.map(c => c.id === conversationId ? data.conversation : c)
-      );
-    }
-  }
-
-  async function sendMessage() {
-    if (!inputMessage.trim()) return;
-
-    // Add user message to UI immediately
-    const userMsg = { role: 'user', content: inputMessage };
-    setMessages(prev => [...prev, userMsg]);
-
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        conversationId: currentConversationId,
-        message: inputMessage,
-        title: currentConversationId ? undefined : 'New Chat'
-      })
-    });
-
-    // Handle streaming response
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let aiResponse = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-  
-      const chunk = decoder.decode(value);
-      aiResponse += chunk;
-  
-      // Update AI message in real-time
-      setMessages(prev => {
-        const newMessages = [...prev];
-        const lastMsg = newMessages[newMessages.length - 1];
-    
-        if (lastMsg?.role === 'assistant') {
-          lastMsg.content = aiResponse;
-        } else {
-          newMessages.push({ role: 'assistant', content: aiResponse });
-        }
-    
-    }
-  }
-
-  async function handleSignOut() {
-    await fetch('/api/auth/sign-out', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    // Clear state and redirect to login
-    localStorage.removeItem('token');
-    setToken(null);
-    setConversations([]);
-    setMessages([]);
-    setCurrentConversationId(null);
-    setUser(null);
-  }
-
-  return (
-    <div className="chat-app">
-      {/* Sidebar with conversations */}
-      <aside>
-        <div className="user-info">
-          {user && (
-            <>
-              <span>{user.name || user.email}</span>
-              <button onClick={handleSignOut}>Sign Out</button>
-            </>
-          )}
-        </div>
-        
-        {conversations.map(conv => (
-          <div key={conv.id} className="conversation-item">
-            <span onClick={() => loadMessages(conv.id)}>
-              {conv.title}
-            </span>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                const newTitle = prompt('Enter new title:', conv.title);
-                if (newTitle) updateTitle(conv.id, newTitle);
-              }}
-            >
-              ✏️
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm('Delete this conversation?')) {
-                  deleteConversation(conv.id);
-                }
-              }}
-            >
-              🗑️
-            </button>
-          </div>
-        ))}
-      </aside>
-    <div className="chat-app">
-      {/* Sidebar with conversations */}
-      <aside>
-        {conversations.map(conv => (
-          <div key={conv.id} onClick={() => loadMessages(conv.id)}>
-            {conv.title}
-          </div>
-        ))}
-      </aside>
-
-      {/* Chat area */}
-      <main>
-        <div className="messages">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={msg.role}>
-              {msg.content}
-            </div>
-          ))}
-        </div>
-    
-        <input
-          value={inputMessage}
-          onChange={e => setInputMessage(e.target.value)}
-          onKeyPress={e => e.key === 'Enter' && sendMessage()}
-          placeholder="Type a message..."
-        />
-      </main>
-    </div>
-  );
-}
-```
-
 ## 🔑 Key Concepts
+
+### Multi-AI Architecture
+
+QueryMate supports three AI providers, each with unique strengths:
+
+1. **Google Gemini** (`gemini`)
+   - Fast, general-purpose AI
+   - Great for coding, explanations, creative writing
+   - Model: `gemini-2.0-flash-exp`
+
+2. **Perplexity AI** (`perplexity`)
+   - Real-time web search capabilities
+   - Provides citations and sources
+   - Perfect for current events and research
+   - Model: `llama-3.1-sonar-large-128k-online`
+
+3. **Amazon Bedrock** (`bedrock`)
+   - Enterprise-grade Claude models
+   - Advanced reasoning and analysis
+   - Model: `anthropic.claude-3-5-sonnet-20240620-v1:0`
 
 ### Conversation vs Chat
 
 - **Conversation**: A container/thread that holds multiple messages (like a WhatsApp chat)
 - **Chat**: The action of sending/receiving messages within a conversation
 - You can start chatting without explicitly creating a conversation - the `/api/chat` endpoint auto-creates one!
+- Each conversation maintains its own history and context
 
 ### Authentication Flow
 
@@ -793,9 +471,17 @@ function ChatApp() {
 
 ### Message Flow
 
-1. **New Chat**: POST to `/api/chat` with just `message` → Backend creates conversation → Returns AI response + conversationId
-2. **Continue Chat**: POST to `/api/chat` with `conversationId` + `message` → AI responds with context
+1. **New Chat**: POST to `/api/chat` with `message` + `model` → Backend creates conversation → Returns AI response
+2. **Continue Chat**: POST to `/api/chat` with `conversationId` + `message` + `model` → AI responds with full conversation context
 3. **Load History**: GET `/api/messages?conversationId={id}` → Returns all messages in conversation
+4. **Switch Models**: Change `model` parameter mid-conversation to get responses from different AI providers
+
+### Streaming Responses
+
+All AI responses use Server-Sent Events (SSE) for real-time streaming:
+- Responses appear word-by-word as they're generated
+- Better user experience with immediate feedback
+- More efficient than waiting for complete responses
 
 ## 🗂️ Database Schema
 
@@ -831,36 +517,338 @@ messages
 
 ## 🧪 Testing with Postman
 
-1. **Sign Up**: POST to `/api/auth/sign-up/email` → Save token
-2. **Get Session**: GET `/api/auth/sessions` with Bearer token
-3. **Create Conversation**: POST to `/api/conversations` with Bearer token
-4. **Send Message**: POST to `/api/chat` with Bearer token and message
-5. **Load Messages**: GET `/api/messages?conversationId=...` with Bearer token
+### Quick Testing Flow
 
-> **Note**: The chat endpoint returns streaming responses. In Postman you'll see 200 status, but the response streams over time. Check your database to verify messages are saved.
+1. **Sign Up**: 
+   ```
+   POST /api/auth/sign-up/email
+   Body: { "email": "test@example.com", "password": "password123", "name": "Test User" }
+   ```
+   → Copy the `token` from response
+
+2. **Get Session** (Verify authentication):
+   ```
+   GET /api/auth/sessions
+   Headers: Authorization: Bearer {your_token}
+   ```
+
+3. **Start New Chat with Gemini**:
+   ```
+   POST /api/chat
+   Headers: Authorization: Bearer {your_token}
+   Body: { "message": "Hello! Tell me about AI", "model": "gemini" }
+   ```
+
+4. **Try Different AI Model**:
+   ```
+   POST /api/chat
+   Headers: Authorization: Bearer {your_token}
+   Body: { "message": "What's the latest tech news?", "model": "perplexity" }
+   ```
+
+5. **Load Conversations**:
+   ```
+   GET /api/conversations
+   Headers: Authorization: Bearer {your_token}
+   ```
+
+6. **Get Message History**:
+   ```
+   GET /api/messages?conversationId={conversation_id}
+   Headers: Authorization: Bearer {your_token}
+   ```
+
+7. **Sign Out**:
+   ```
+   POST /api/auth/sign-out
+   Headers: Authorization: Bearer {your_token}
+   ```
+
+> **Note**: The `/api/chat` endpoint returns streaming responses. In Postman you'll see 200 status, but the response streams over time. Check your database `messages` table to verify AI responses are saved correctly.
 
 ## 🚀 Deployment
 
 ### Environment Variables for Production
 
-Ensure these are set in your hosting platform (Vercel, Railway, etc.):
+Ensure these are set in your hosting platform (Vercel, Railway, Render, etc.):
 
-- `DATABASE_URL`: Your production PostgreSQL connection string
+**Required:**
+- `SUPABASE_DB_URL`: Your production PostgreSQL connection string
 - `BETTER_AUTH_SECRET`: Secure random string (min 32 characters)
 - `BETTER_AUTH_URL`: Your production domain (e.g., https://querymate.com)
-- `GOOGLE_GENERATIVE_AI_API_KEY`: Google AI API key
-- OAuth credentials (if using social login)
+
+**AI Providers (at least one required):**
+- `GOOGLE_API_KEY` & `GEMINI_MODEL`: For Google Gemini
+- `PERPLEXITY_API_KEY` & `PERPLEXITY_MODEL`: For Perplexity AI
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `BEDROCK_MODEL_ID`: For Amazon Bedrock
+
+**Optional (for OAuth):**
+- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: For Google Sign-In
+- `GITHUB_CLIENT_ID` & `GITHUB_CLIENT_SECRET`: For GitHub Sign-In
 
 ### Deploy on Vercel
+## 🎯 Use Cases
 
-```bash
-npm run build
-vercel deploy
-```
+- **Developers**: Get coding help from Gemini, research docs with Perplexity
+- **Researchers**: Access real-time information with citations via Perplexity
+- **Writers**: Generate content with Claude (Bedrock) or Gemini
+- **Students**: Learn and get explanations from multiple AI perspectives
+- **Professionals**: Compare AI responses for better decision-making
 
-Or connect your GitHub repo to Vercel for automatic deployments.
+## 🌟 Roadmap
+
+- [ ] Voice input support
+- [ ] File upload and analysis
+- [ ] Export conversations to PDF/Markdown
+- [ ] Shared conversations with public links
+- [ ] Custom AI model parameters (temperature, max tokens)
+- [ ] Mobile app (React Native)
+- [ ] Claude 4 and GPT-4 integration
+- [ ] Team workspaces
 
 ## 📝 License
+
+MIT License - feel free to use this project for personal or commercial purposes.
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how you can help:
+
+1. 🐛 **Report Bugs**: Open an issue with details
+2. 💡 **Suggest Features**: Share your ideas in discussions
+3. 🔧 **Submit PRs**: Fix bugs or add features
+4. 📖 **Improve Docs**: Help make documentation clearer
+
+### Development Setup for Contributors
+
+```bash
+git clone https://github.com/Jaswanth1406/QueryMate.git
+cd QueryMate
+npm install
+cp .env.example .env.local  # Add your API keys
+npx drizzle-kit push
+npm run dev
+```
+
+## 📧 Support & Contact
+
+- **GitHub**: [@Jaswanth1406](https://github.com/Jaswanth1406)
+- **Issues**: [Report bugs or request features](https://github.com/Jaswanth1406/QueryMate/issues)
+- **Discussions**: [Join the conversation](https://github.com/Jaswanth1406/QueryMate/discussions)
+
+## 🙏 Acknowledgments
+
+- [Vercel AI SDK](https://sdk.vercel.ai) for seamless AI integration
+- [Better Auth](https://better-auth.com) for robust authentication
+- [Drizzle ORM](https://orm.drizzle.team) for type-safe database queries
+- [Radix UI](https://radix-ui.com) for accessible components
+- [Tailwind CSS](https://tailwindcss.com) for beautiful styling
+
+---
+
+<div align="center">
+
+**Built with ❤️ by [Jaswanth1406](https://github.com/Jaswanth1406)**
+
+If you find this project helpful, please ⭐ star the repository!
+
+[Demo](https://querymate.vercel.app) · [Documentation](https://github.com/Jaswanth1406/QueryMate#readme) · [Report Bug](https://github.com/Jaswanth1406/QueryMate/issues)
+
+</div>
+   - Add all environment variables
+   - Deploy!
+
+3. **Post-Deployment**
+   ```bash
+   # Run database migrations
+   npx drizzle-kit push
+   ```
+
+Or use Vercel CLI:
+```bash
+npm run build
+vercel deploy --prod
+```
+
+### Performance Optimization
+
+- ✅ Streaming responses for instant feedback
+- ✅ Optimized database queries with indexes
+- ✅ JWT token caching
+- ✅ Static generation for auth pages
+- ✅ Lazy loading components
+
+## 🔧 Development Tips
+
+### Testing Different AI Models
+
+```bash
+# Set different models in .env.local for testing
+GEMINI_MODEL=gemini-2.0-flash-exp          # Fast, great for development
+PERPLEXITY_MODEL=llama-3.1-sonar-large-128k-online  # Real-time search
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0  # Advanced reasoning
+```
+
+### Database Management
+
+```bash
+# Generate migrations
+npx drizzle-kit generate
+
+# Push schema to database
+npx drizzle-kit push
+
+# Open Drizzle Studio (database GUI)
+npx drizzle-kit studio
+```
+
+### Common Issues
+
+**Issue**: "Invalid model" error
+- **Solution**: Check that `GEMINI_MODEL`, `PERPLEXITY_MODEL`, or `BEDROCK_MODEL_ID` environment variables are set correctly
+
+**Issue**: Streaming not working in Postman
+- **Solution**: This is expected. Use the web UI or check database `messages` table to verify responses
+
+**Issue**: Authentication errors
+- **Solution**: Ensure `BETTER_AUTH_SECRET` is set and token is included in Authorization header
+
+## 📊 API Rate Limits
+
+Be aware of rate limits for each AI provider:
+
+| Provider | Free Tier | Rate Limit |
+|----------|-----------|------------|
+| Google Gemini | 15 RPM | 1,500 requests/day |
+| Perplexity | 5 credits | 5 requests/5 minutes |
+| Amazon Bedrock | Pay-per-use | Based on AWS limits |
+
+## 🎨 Customization
+
+### Adding New AI Models
+
+1. Create provider file in `app/lib/ai-[provider].ts`
+2. Add model option in `ChatBox.tsx` Select component
+3. Update `route.ts` in `/api/chat` to handle new model
+4. Add environment variables
+
+### Styling
+
+The app uses Tailwind CSS with custom configurations:
+- Gradients: `from-purple-600 to-fuchsia-500`
+- Animations: `slideInLeft`, `slideInRight`
+- Components: Radix UI primitives
+
+## 🏗️ Project Structure
+
+```
+QueryMate/
+├── app/
+│   ├── api/                      # API Routes
+│   │   ├── auth/                 # Authentication endpoints
+│   │   │   ├── [...all]/route.ts    # Better Auth handler
+│   │   │   └── sessions/route.ts    # Session management
+│   │   ├── chat/route.ts         # Main chat endpoint (AI streaming)
+│   │   ├── conversations/route.ts # CRUD for conversations
+│   │   └── messages/route.ts     # Message history
+│   │
+│   ├── components/               # React Components
+│   │   ├── ChatBox.tsx          # Main chat interface with streaming
+│   │   ├── ChatSidebar.tsx      # Conversation list sidebar
+│   │   ├── AuthLoginForm.tsx    # Login form
+│   │   ├── AuthSignupForm.tsx   # Signup form
+│   │   └── ui/                  # Reusable UI components
+│   │
+│   ├── lib/                      # Utilities & Config
+│   │   ├── ai-gemini.ts         # Google Gemini setup
+│   │   ├── ai-perplexity.ts     # Perplexity AI setup
+│   │   ├── ai-bedrock.ts        # Amazon Bedrock setup
+│   │   ├── auth.ts              # Better Auth server config
+│   │   ├── auth-middleware.ts   # JWT validation middleware
+│   │   ├── better-auth-client.ts # Auth client hooks
+│   │   ├── schema.ts            # Drizzle ORM schema
+│   │   ├── lib.ts               # Database connection
+│   │   └── utils.ts             # Helper functions
+│   │
+│   ├── auth/                     # Auth pages
+│   │   ├── login/page.tsx
+│   │   └── signup/page.tsx
+│   │
+│   ├── chat/page.tsx            # Main chat page
+│   ├── layout.tsx               # Root layout
+│   ├── page.tsx                 # Home page
+│   └── globals.css              # Global styles
+│
+├── drizzle.config.ts            # Drizzle ORM configuration
+├── next.config.ts               # Next.js configuration
+├── tailwind.config.js           # Tailwind CSS configuration
+├── tsconfig.json                # TypeScript configuration
+└── package.json                 # Dependencies
+```
+
+## 🔒 Security Features
+
+### Authentication & Authorization
+- **JWT Tokens**: Secure, stateless authentication
+- **Password Hashing**: bcrypt for secure password storage
+- **Session Management**: Automatic token expiration and refresh
+- **Protected Routes**: Middleware validates all API requests
+
+### API Security
+- **CORS Protection**: Configured for specific origins
+- **Rate Limiting**: Prevent abuse (implement with middleware)
+- **Input Validation**: All user inputs are validated
+- **SQL Injection Prevention**: Drizzle ORM parameterized queries
+
+### Data Protection
+- **User Isolation**: Users can only access their own data
+- **Cascade Deletion**: Deleting conversations removes associated messages
+- **Environment Variables**: Sensitive keys stored securely
+
+## 📊 Database Relationships
+
+```mermaid
+erDiagram
+    USER ||--o{ SESSION : has
+    USER ||--o{ CONVERSATION : creates
+    CONVERSATION ||--o{ MESSAGE : contains
+    
+    USER {
+        string id PK
+        string email UK
+        string name
+        string passwordHash
+        boolean emailVerified
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    SESSION {
+        string id PK
+        string userId FK
+        string token UK
+        timestamp expiresAt
+        json metadata
+    }
+    
+    CONVERSATION {
+        string id PK
+        string userId FK
+        string title
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    MESSAGE {
+        string id PK
+        string conversationId FK
+        string role
+        text content
+        timestamp createdAt
+    }
+```
+
+## 🎯 Use Cases
 
 MIT
 
