@@ -13,6 +13,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <ToastContainer />
       </body>
-    </html>
-  );
+   </html>
+ );
 }

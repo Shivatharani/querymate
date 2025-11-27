@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import ChatSidebar from "@/components/ChatSidebar";
 import ChatBox from "@/components/ChatBox";
 import { Button } from "@/components/ui/button";
+import { showToast } from "@/lib/toastify"; // same helper used on login
 
 // Custom SVG icons
 const MenuIcon = ({ className = "w-6 h-6" }) => (
@@ -20,7 +21,11 @@ const LogoutIcon = ({ className = "w-5 h-5" }) => (
 
 const SparklesIcon = ({ className = "w-6 h-6" }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -31,7 +36,12 @@ export default function ChatPage() {
   const router = useRouter();
 
   function handleLogout() {
+    // clear local token if you use it
     localStorage.removeItem("token");
+
+    // use the same toast helper & style as login
+    showToast("success", "Signed out successfully!");
+
     router.push("/auth/login");
   }
 
@@ -53,8 +63,9 @@ export default function ChatPage() {
               variant="ghost"
               size="icon"
               className="hover:bg-purple-100 transition-colors rounded-xl"
-              onClick={() => setSidebarOpen(o => !o)}
+              onClick={() => setSidebarOpen((o) => !o)}
               aria-label={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+              suppressHydrationWarning
             >
               <MenuIcon className="w-6 h-6 text-purple-600" />
             </Button>
@@ -70,17 +81,14 @@ export default function ChatPage() {
           <Button
             className="ml-auto bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2 font-semibold"
             onClick={handleLogout}
+            suppressHydrationWarning
           >
             <LogoutIcon className="w-4 h-4" />
             <span>Logout</span>
           </Button>
         </header>
         <div className="flex-1 h-0 flex flex-col">
-          <ChatBox
-            conversationId={convId}
-            setConversationId={setConvId}
-            chatTitle={chatTitle}
-          />
+          <ChatBox conversationId={convId} setConversationId={setConvId} chatTitle={chatTitle} />
         </div>
       </div>
     </div>

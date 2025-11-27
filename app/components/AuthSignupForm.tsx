@@ -75,6 +75,7 @@ export default function AuthSignupForm() {
           placeholder="Enter your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          suppressHydrationWarning
         />
       </div>
       <div className="mb-3">
@@ -88,6 +89,7 @@ export default function AuthSignupForm() {
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          suppressHydrationWarning
         />
       </div>
       <div className="mb-3 relative">
@@ -101,6 +103,7 @@ export default function AuthSignupForm() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          suppressHydrationWarning
         />
         <button
           type="button"
@@ -122,6 +125,7 @@ export default function AuthSignupForm() {
           placeholder="Confirm password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
+          suppressHydrationWarning
         />
         <button
           type="button"

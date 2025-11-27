@@ -68,6 +68,7 @@ export default function AuthLoginForm() {
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          suppressHydrationWarning
         />
       </div>
       <div className="mb-3 relative">
@@ -81,6 +82,7 @@ export default function AuthLoginForm() {
           value={password}
           autoComplete="current-password"
           onChange={(e) => setPassword(e.target.value)}
+          suppressHydrationWarning
         />
         <button
           type="button"

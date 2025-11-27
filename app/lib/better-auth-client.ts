@@ -48,7 +48,7 @@ export const signUp = {
   },
   github: async () => {
     try {
-      const resp = await client.signIn.social({ provider: "github" }) as any;
+      const resp = await client.signIn.social({ provider: "github", callbackURL: "/chat" }) as any;
       if (resp?.error) {
         const textError =
           typeof resp.error === "string"
@@ -132,7 +132,7 @@ export const signIn = {
   },
   github: async () => {
     try {
-      const resp = await client.signIn.social({ provider: "github" }) as any;
+      const resp = await client.signIn.social({ provider: "github", callbackURL: "/chat" }) as any;
       if (resp?.error) {
         const textError =
           typeof resp.error === "string"
@@ -156,7 +156,7 @@ export const signIn = {
   },
   google: async () => {
     try {
-      const resp = await client.signIn.social({ provider: "google" }) as any;
+      const resp = await client.signIn.social({ provider: "google", callbackURL: "/chat" }) as any;
       if (resp?.error) {
         const textError =
           typeof resp.error === "string"

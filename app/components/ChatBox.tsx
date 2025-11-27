@@ -89,7 +89,12 @@ export default function ChatBox({
     }
 
     if (!conversationId) {
-      setMessages([{ role: "assistant", content: "👋 Hello! I'm your AI assistant. How can I help you today?" }]);
+      setMessages([
+        {
+          role: "assistant",
+          content: "👋 Hello! I'm your AI assistant. How can I help you today?",
+        },
+      ]);
       return;
     }
     loadHistory(conversationId);
@@ -199,7 +204,7 @@ export default function ChatBox({
           animation: slideInLeft 0.4s ease-out;
         }
       `}</style>
-      
+
       <ScrollArea.Root type="scroll" className="flex-1 min-h-0 w-full">
         <ScrollArea.Viewport
           ref={scrollRootRef as any}
@@ -250,7 +255,7 @@ export default function ChatBox({
         </ScrollArea.Scrollbar>
         <ScrollArea.Corner />
       </ScrollArea.Root>
-      
+
       <div className="flex-shrink-0 border-t bg-white shadow-lg">
         <div className="max-w-5xl mx-auto px-6 py-5 md:px-16 lg:px-24">
           <div className="flex items-center gap-3 bg-gray-50 rounded-2xl p-2 border-2 border-transparent focus-within:border-purple-400 focus-within:bg-white transition-all duration-300 shadow-sm">
@@ -273,7 +278,7 @@ export default function ChatBox({
                 </SelectItem>
                 <SelectItem value="bedrock">
                   <div className="flex items-center gap-2">
-                    <span className="text-base">☁️</span>
+                    <span className="text-base">☁</span>
                     <span>Amazon Bedrock</span>
                   </div>
                 </SelectItem>
@@ -283,7 +288,7 @@ export default function ChatBox({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSubmit(e);
                 }
