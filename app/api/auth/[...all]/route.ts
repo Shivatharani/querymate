@@ -65,12 +65,12 @@ export async function POST(req: Request) {
     if (decision.reason.isRateLimit()) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
-        { status: 429 }
+        { status: 429 },
       );
     } else if (decision.reason.isBot()) {
       return NextResponse.json(
         { error: "Bot activity detected. Request denied." },
-        { status: 403 }
+        { status: 403 },
       );
     } else if (decision.reason.isEmail()) {
       let message: string;
@@ -119,7 +119,7 @@ async function checkArcjet(req: Request, clonedBody: unknown) {
             email: emailSettings,
             bots: botSettings,
             rateLimit: restrictiveRateLimitSettings,
-          })
+          }),
         )
         .protect(req, { email: clonedBody.email, userIdOrIp });
     } else {
