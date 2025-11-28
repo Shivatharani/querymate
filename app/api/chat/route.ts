@@ -7,7 +7,7 @@ import { bedrock } from "@/lib/ai-bedrock";
 import { perplexity } from "@/lib/ai-perplexity";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getAuthSession, unauthorizedResponse } from "@/lib/auth-middleware";
+import { getAuthSession } from "@/lib/auth-middleware";
 
 export async function POST(req: Request) {
   try {
@@ -17,7 +17,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let { conversationId, message, title, model = "gemini" } = await req.json();
+    const body = await req.json();
+    let { conversationId } = body as { conversationId?: string };
+    const { message, title, model = "gemini" } = body as {
+      message?: string;
+      title?: string;
+      model?: string;
+    };
 
     if (!message) {
       return NextResponse.json(

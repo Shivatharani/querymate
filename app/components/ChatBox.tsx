@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, Send, User, Bot } from "lucide-react";
+import { Send, User, Bot } from "lucide-react";
 
 function Bubble({ role, children }: { role: string; children: React.ReactNode }) {
   if (role === "user") {
@@ -69,7 +69,8 @@ export default function ChatBox({
   setConversationId: (id: string | null) => void;
   chatTitle?: string | null;
 }) {
-  const [messages, setMessages] = useState<any[]>([]);
+  type ChatMessage = { role: "user" | "assistant"; content: string };
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>("gemini");
@@ -89,6 +90,7 @@ export default function ChatBox({
     }
 
     if (!conversationId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([
         {
           role: "assistant",
@@ -115,7 +117,10 @@ export default function ChatBox({
     setInput("");
     setLoading(true);
 
-    const body: any = { message: trimmed, model: selectedModel };
+    const body: { message: string; model: string; conversationId?: string } = {
+      message: trimmed,
+      model: selectedModel,
+    };
     if (conversationId) body.conversationId = conversationId;
 
     try {
@@ -207,7 +212,7 @@ export default function ChatBox({
 
       <ScrollArea.Root type="scroll" className="flex-1 min-h-0 w-full">
         <ScrollArea.Viewport
-          ref={scrollRootRef as any}
+          ref={scrollRootRef}
           className="h-full w-full px-3 py-4 sm:px-6 sm:py-8 md:px-16 lg:px-24"
           style={{ maxHeight: "calc(100vh - 170px)", minHeight: 0 }}
         >
@@ -217,25 +222,25 @@ export default function ChatBox({
                 {m.role === "assistant" ? (
                   <ReactMarkdown
                     components={{
-                      h1: ({ node, ...props }) => (
+                      h1: ({ ...props }) => (
                         <h1 {...props} className="text-2xl font-bold mt-4 mb-3 text-gray-900" />
                       ),
-                      h2: ({ node, ...props }) => (
+                      h2: ({ ...props }) => (
                         <h2 {...props} className="text-xl font-semibold mt-3 mb-2 text-gray-800" />
                       ),
-                      h3: ({ node, ...props }) => (
+                      h3: ({ ...props }) => (
                         <h3 {...props} className="text-lg font-semibold mt-2 mb-2 text-gray-800" />
                       ),
-                      p: ({ node, ...props }) => (
+                      p: ({ ...props }) => (
                         <p {...props} className="mb-3 last:mb-0" />
                       ),
-                      ul: ({ node, ...props }) => (
+                      ul: ({ ...props }) => (
                         <ul {...props} className="space-y-2 my-3" />
                       ),
-                      ol: ({ node, ...props }) => (
+                      ol: ({ ...props }) => (
                         <ol {...props} className="space-y-2 my-3" />
                       ),
-                      li: ({ node, ...props }) => (
+                      li: ({ ...props }) => (
                         <li className="ml-4" {...props} />
                       ),
                     }}

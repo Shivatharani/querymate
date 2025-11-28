@@ -3,7 +3,7 @@ import { db } from "@/lib/lib";
 import { messages, conversations } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { getAuthSession, unauthorizedResponse } from "@/lib/auth-middleware";
+import { getAuthSession } from "@/lib/auth-middleware";
 
 export async function GET(req: Request) {
   try {

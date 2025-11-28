@@ -15,7 +15,11 @@ import {
   MoreVertical,
 } from "lucide-react";
 
-function titleFromMessages(messages: any[]) {
+type Role = "user" | "assistant";
+type Message = { role: Role; content: string };
+type Conversation = { id: string; title?: string | null; createdAt?: string; userId?: string };
+
+function titleFromMessages(messages: Message[]) {
   const firstUserMsg = messages?.find((m) => m.role === "user")?.content || "";
   return firstUserMsg.split(/\s+/).slice(0, 5).join(" ") || "New Chat";
 }
@@ -29,9 +33,9 @@ export default function ChatSidebar({
   setOpen: (v: boolean) => void;
   onSelectConversation: (id: string | null, title: string) => void;
 }) {
-  const [user, setUser] = useState<any>(null);
-  const [chats, setChats] = useState<any[]>([]);
-  const [messagesByConv, setMessagesByConv] = useState<Record<string, any[]>>({});
+  const [user, setUser] = useState<{ name?: string; email?: string } | null>(null);
+  const [chats, setChats] = useState<Conversation[]>([]);
+  const [messagesByConv, setMessagesByConv] = useState<Record<string, Message[]>>({});
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -58,7 +62,7 @@ export default function ChatSidebar({
         const list = convData.conversations || [];
         setChats(list);
 
-        const msgMap: Record<string, any[]> = {};
+        const msgMap: Record<string, Message[]> = {};
         for (const c of list) {
           try {
             const r = await fetch(`/api/messages?conversationId=${c.id}`, {
@@ -80,7 +84,7 @@ export default function ChatSidebar({
     loadData();
   }, []);
 
-  const getChatTitle = (chat: any) => {
+  const getChatTitle = (chat: Conversation) => {
     if (chat.title && chat.title !== "New Chat" && chat.title !== "New Conversation") {
       return chat.title.trim();
     }

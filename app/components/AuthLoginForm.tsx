@@ -45,7 +45,7 @@ export default function AuthLoginForm() {
       } else {
         setError("Unknown error during login. See console.");
       }
-    } catch (err: any) {
+    } catch {
       setError("Login failed. Please try again.");
     }
     setLoading(false);

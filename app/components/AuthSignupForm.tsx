@@ -54,7 +54,7 @@ export default function AuthSignupForm() {
       } else {
         setError("Unknown error during signup. See console.");
       }
-    } catch (err: any) {
+    } catch {
       setError("Signup failed. Please try again.");
     }
     setLoading(false);
