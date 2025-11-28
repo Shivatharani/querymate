@@ -122,7 +122,13 @@ export const signUp = {
 };
 
 export const signIn = {
-  async email({ email, password }: { email: string; password: string }): Promise<ApiResult> {
+  async email({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }): Promise<ApiResult> {
     if (!emailRegex.test(email)) {
       showToast("error", "Invalid email address.");
       return { error: "Invalid email address." };
