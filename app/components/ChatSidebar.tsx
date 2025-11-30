@@ -181,29 +181,29 @@ export default function ChatSidebar({
       )}
 
       <aside
-        className={`fixed z-30 left-0 top-0 h-full w-80 sm:w-80 md:w-80 transition-all duration-300 ease-in-out shadow-2xl bg-white ${
+        className={`fixed z-30 left-0 top-0 h-full w-80 sm:w-80 md:w-80 transition-all duration-300 ease-in-out shadow-2xl bg-white dark:bg-gray-900 ${
           open ? "translate-x-0" : "-translate-x-80"
         }`}
       >
         <Button
           variant="ghost"
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full hover:bg-gray-100 transition-colors h-8 w-8 sm:h-10 sm:w-10"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors h-8 w-8 sm:h-10 sm:w-10"
           onClick={() => setOpen(false)}
           aria-label="Close sidebar"
           size="icon"
         >
-          <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+          <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400" />
         </Button>
 
         {/* User circle + name + email */}
-        <div className="flex flex-col items-center py-6 sm:py-8 border-b bg-gradient-to-b from-gray-50 to-white">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black flex items-center justify-center text-white text-xl sm:text-2xl font-semibold shadow-lg mb-2 sm:mb-3">
+        <div className="flex flex-col items-center py-6 sm:py-8 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black dark:bg-white flex items-center justify-center text-white dark:text-black text-xl sm:text-2xl font-semibold shadow-lg mb-2 sm:mb-3">
             {initial}
           </div>
-          <div className="font-bold text-base sm:text-lg text-gray-900">
+          <div className="font-bold text-base sm:text-lg text-gray-900 dark:text-white">
             {user?.name ?? "User"}
           </div>
-          <div className="text-xs sm:text-sm text-gray-500 px-4 text-center truncate max-w-full">
+          <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 px-4 text-center truncate max-w-full">
             {user?.email ?? "email@example.com"}
           </div>
         </div>
@@ -215,25 +215,25 @@ export default function ChatSidebar({
               setActiveId(null);
               onSelectConversation(null, "New Chat");
             }}
-            className="flex items-center gap-2 justify-center bg-black hover:bg-gray-800 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 py-3 font-semibold"
+            className="flex items-center gap-2 justify-center bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 py-3 font-semibold"
           >
             <PlusIcon className="w-5 h-5" /> New Chat
           </Button>
-          <div className="flex items-center rounded-xl border-2 border-gray-200 px-3 py-2 focus-within:border-gray-400 transition-colors bg-gray-50 focus-within:bg-white">
-            <Search className="w-5 h-5 text-gray-400" />
+          <div className="flex items-center rounded-xl border-2 border-gray-200 dark:border-gray-700 px-3 py-2 focus-within:border-gray-400 dark:focus-within:border-gray-500 transition-colors bg-gray-50 dark:bg-gray-800 focus-within:bg-white dark:focus-within:bg-gray-700">
+            <Search className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             <Input
               type="text"
               placeholder="Search chats..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 px-3 py-1 outline-none bg-transparent text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="flex-1 px-3 py-1 outline-none bg-transparent text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 dark:text-white dark:placeholder-gray-500"
             />
           </div>
         </div>
 
         {/* Conversations list */}
         <nav className="flex-1 mt-4 mb-6 px-4">
-          <div className="mb-3 font-semibold text-xs tracking-wide text-gray-500 uppercase flex items-center gap-2">
+          <div className="mb-3 font-semibold text-xs tracking-wide text-gray-500 dark:text-gray-400 uppercase flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             <span>Recent Conversations</span>
           </div>
@@ -248,12 +248,12 @@ export default function ChatSidebar({
                         key={chat.id}
                         className={`flex items-center gap-2 rounded-xl transition-all duration-200 px-2 py-1 ${
                           activeId === chat.id
-                            ? "bg-gray-100 shadow-sm"
-                            : "hover:bg-gray-100"
+                            ? "bg-gray-100 dark:bg-gray-800 shadow-sm"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
                         }`}
                       >
                         <button
-                          className="text-left flex-1 min-w-0 px-2 py-2 font-medium text-sm text-gray-800"
+                          className="text-left flex-1 min-w-0 px-2 py-2 font-medium text-sm text-gray-800 dark:text-gray-200"
                           onClick={() => {
                             setActiveId(chat.id);
                             onSelectConversation(chat.id, chatTitle);
@@ -261,7 +261,7 @@ export default function ChatSidebar({
                           }}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <Sparkles className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                            <Sparkles className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                             <span className="truncate block">{chatTitle}</span>
                           </div>
                         </button>
@@ -271,35 +271,35 @@ export default function ChatSidebar({
                           <DropdownMenu.Trigger asChild>
                             <button
                               type="button"
-                              className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
+                              className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
                               onClick={(e) => e.stopPropagation()}
                               aria-label="Conversation options"
                             >
-                              <MoreVertical className="w-4 h-4 text-gray-600" />
+                              <MoreVertical className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                             </button>
                           </DropdownMenu.Trigger>
                           <DropdownMenu.Content
                             side="right"
                             align="start"
-                            className="z-[99] bg-white border border-gray-200 rounded-md shadow-md text-sm min-w-[160px] py-1"
+                            className="z-[99] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-md text-sm min-w-[160px] py-1"
                           >
                             <DropdownMenu.Item
                               onSelect={(e) => {
                                 e.preventDefault();
                                 handleEdit(chat.id);
                               }}
-                              className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 text-gray-700"
+                              className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
                             >
                               <Edit className="w-4 h-4" />
                               <span>Edit</span>
                             </DropdownMenu.Item>
-                            <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
+                            <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
                             <DropdownMenu.Item
                               onSelect={(e) => {
                                 e.preventDefault();
                                 handleDelete(chat.id);
                               }}
-                              className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-red-50 text-red-600"
+                              className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
                             >
                               <Trash2 className="w-4 h-4" />
                               <span>Delete</span>
@@ -310,8 +310,8 @@ export default function ChatSidebar({
                     );
                   })
                 ) : (
-                  <div className="text-gray-400 text-sm py-8 text-center">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <div className="text-gray-400 dark:text-gray-500 text-sm py-8 text-center">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                     <p>No conversations yet</p>
                     <p className="text-xs mt-1">Start a new chat to begin</p>
                   </div>
@@ -320,9 +320,9 @@ export default function ChatSidebar({
             </ScrollArea.Viewport>
             <ScrollArea.Scrollbar
               orientation="vertical"
-              className="w-2 bg-gray-100 rounded-full"
+              className="w-2 bg-gray-100 dark:bg-gray-800 rounded-full"
             >
-              <ScrollArea.Thumb className="bg-gray-400 rounded-full hover:bg-gray-500 transition-colors" />
+              <ScrollArea.Thumb className="bg-gray-400 dark:bg-gray-600 rounded-full hover:bg-gray-500 dark:hover:bg-gray-500 transition-colors" />
             </ScrollArea.Scrollbar>
             <ScrollArea.Corner />
           </ScrollArea.Root>
@@ -331,7 +331,7 @@ export default function ChatSidebar({
 
       {open && (
         <div
-          className="fixed inset-0 z-20 bg-black bg-opacity-20 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-20 bg-black bg-opacity-20 dark:bg-opacity-40 backdrop-blur-sm transition-opacity"
           onClick={() => setOpen(false)}
           aria-label="Close sidebar"
           tabIndex={-1}

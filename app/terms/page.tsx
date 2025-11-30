@@ -3,16 +3,16 @@ import Footer from "@/components/Footer";
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
       <Navbar />
 
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-8">
           Terms of Service
         </h1>
 
-        <div className="prose prose-gray max-w-none">
-          <p className="text-gray-600 mb-6">
+        <div className="prose prose-gray dark:prose-invert max-w-none">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Last updated:{" "}
             {new Date().toLocaleDateString("en-US", {
               month: "long",
@@ -22,10 +22,10 @@ export default function TermsPage() {
           </p>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               1. Acceptance of Terms
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               By accessing and using QueryMate, you accept and agree to be bound
               by the terms and provisions of this agreement. If you do not agree
               to these terms, please do not use our service.
@@ -33,10 +33,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               2. Description of Service
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               QueryMate is an AI-powered chat assistant that provides
               conversational AI capabilities. We reserve the right to modify,
               suspend, or discontinue the service at any time without prior
@@ -45,11 +45,13 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               3. User Accounts
             </h2>
-            <p className="text-gray-600 mb-4">To use our service, you must:</p>
-            <ul className="list-disc list-inside text-gray-600 space-y-2 ml-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              To use our service, you must:
+            </p>
+            <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-2 ml-4">
               <li>Be at least 13 years of age</li>
               <li>Provide accurate and complete registration information</li>
               <li>Maintain the security of your account credentials</li>
@@ -58,13 +60,13 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               4. Acceptable Use
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               You agree not to use QueryMate to:
             </p>
-            <ul className="list-disc list-inside text-gray-600 space-y-2 ml-4">
+            <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 space-y-2 ml-4">
               <li>Violate any applicable laws or regulations</li>
               <li>Generate harmful, abusive, or illegal content</li>
               <li>Attempt to bypass security measures or rate limits</li>
@@ -75,10 +77,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               5. Intellectual Property
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               The service and its original content, features, and functionality
               are owned by QueryMate and are protected by international
               copyright, trademark, and other intellectual property laws. You
@@ -87,10 +89,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               6. AI-Generated Content
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               AI responses are generated automatically and may not always be
               accurate, complete, or appropriate. You acknowledge that
               AI-generated content should not be relied upon for medical, legal,
@@ -100,10 +102,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               7. Limitation of Liability
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               QueryMate shall not be liable for any indirect, incidental,
               special, consequential, or punitive damages resulting from your
               use of or inability to use the service. Our total liability shall
@@ -112,10 +114,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               8. Termination
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               We may terminate or suspend your account immediately, without
               prior notice, for any breach of these Terms. Upon termination,
               your right to use the service will cease immediately.
@@ -123,10 +125,10 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               9. Changes to Terms
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               We reserve the right to modify these terms at any time. We will
               notify users of any material changes by posting the new terms on
               this page. Continued use of the service after changes constitutes
@@ -135,14 +137,14 @@ export default function TermsPage() {
           </section>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
               10. Contact Us
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               If you have any questions about these Terms, please contact us at{" "}
               <a
                 href="mailto:support@querymate.app"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
               >
                 support@querymate.app
               </a>

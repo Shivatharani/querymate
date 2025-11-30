@@ -68,7 +68,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-gradient-to-b from-white to-gray-50 overflow-hidden">
+    <div className="h-screen w-screen flex bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 overflow-hidden">
       <ChatSidebar
         open={sidebarOpen}
         setOpen={setSidebarOpen}
@@ -79,23 +79,23 @@ export default function ChatPage() {
         }}
       />
       <div className="flex-1 flex flex-col min-h-screen">
-        <header className="flex w-full items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b bg-white/80 backdrop-blur-lg sticky top-0 z-20 shadow-sm">
+        <header className="flex w-full items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-lg sticky top-0 z-20 shadow-sm">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-gray-100 transition-colors rounded-xl h-9 w-9 sm:h-10 sm:w-10"
+              className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-xl h-9 w-9 sm:h-10 sm:w-10"
               onClick={() => setSidebarOpen((o) => !o)}
               aria-label={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
               suppressHydrationWarning
             >
-              <MenuIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" />
+              <MenuIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 dark:text-gray-300" />
             </Button>
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-black rounded-xl flex items-center justify-center shadow-lg">
-                <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-black dark:bg-white rounded-xl flex items-center justify-center shadow-lg">
+                <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-black" />
               </div>
-              <h1 className="hidden sm:block text-xl sm:text-2xl font-bold select-none tracking-tight text-gray-900">
+              <h1 className="hidden sm:block text-xl sm:text-2xl font-bold select-none tracking-tight text-gray-900 dark:text-white">
                 QUERY MATE AI
               </h1>
             </div>

@@ -66,16 +66,16 @@ export default function AuthLoginForm() {
 
   return (
     <form className="w-full" onSubmit={handleSubmit}>
-      <h2 className="text-3xl font-bold mb-2 text-center text-gray-900">
+      <h2 className="text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white">
         Welcome back
       </h2>
-      <p className="mb-6 text-center text-gray-500">
+      <p className="mb-6 text-center text-gray-500 dark:text-gray-400">
         Enter your credentials to access your account
       </p>
       <div className="mb-3">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 dark:text-gray-200">
           Email:{" "}
-          <span className="font-normal text-xs text-gray-400 ml-1">
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
             eg. email@example.com
           </span>
         </label>
@@ -87,12 +87,13 @@ export default function AuthLoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           suppressHydrationWarning
+          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
       </div>
       <div className="mb-3 relative">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 dark:text-gray-200">
           Password:{" "}
-          <span className="font-normal text-xs text-gray-400 ml-1">
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
             eg. ••••••
           </span>
         </label>
@@ -104,45 +105,52 @@ export default function AuthLoginForm() {
           autoComplete="current-password"
           onChange={(e) => setPassword(e.target.value)}
           suppressHydrationWarning
+          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
         <button
           type="button"
-          className="absolute top-8 right-3 text-gray-400 focus:outline-none"
+          className="absolute top-8 right-3 text-gray-400 dark:text-gray-500 focus:outline-none"
           onClick={() => setShowPass((s) => !s)}
           tabIndex={-1}
         >
           {showPass ? <EyeOpenIcon /> : <EyeClosedIcon />}
         </button>
       </div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 dark:text-gray-300">
         <label className="flex items-center gap-2">
-          <input type="checkbox" />
+          <input type="checkbox" className="dark:bg-gray-700" />
           Remember me
         </label>
-        <a href="#" className="text-xs text-gray-400">
+        <a
+          href="#"
+          className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
+        >
           Forgot password?
         </a>
       </div>
       {error && (
-        <div className="text-red-500 mb-2" data-testid="error-message">
+        <div
+          className="text-red-500 dark:text-red-400 mb-2"
+          data-testid="error-message"
+        >
           {error}
         </div>
       )}
       <Button
         type="submit"
-        className="w-full bg-black hover:bg-gray-800 text-white py-2 rounded mb-4 font-bold shadow hover:shadow-lg transition"
+        className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white py-2 rounded mb-4 font-bold shadow hover:shadow-lg transition"
         disabled={loading}
       >
         {loading ? "Signing in..." : "Sign in"}
       </Button>
-      <div className="my-4 text-center text-gray-400 font-medium text-xs">
+      <div className="my-4 text-center text-gray-400 dark:text-gray-500 font-medium text-xs">
         OR CONTINUE WITH
       </div>
       <div className="flex gap-4 mb-4">
         <Button
           type="button"
           variant="outline"
-          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 hover:border-black shadow"
+          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 dark:border-gray-600 hover:border-black dark:hover:border-gray-400 shadow dark:text-gray-200 dark:hover:bg-gray-700"
           onClick={() => signIn.github()}
         >
           <GitHubLogoIcon /> Github
@@ -150,17 +158,17 @@ export default function AuthLoginForm() {
         <Button
           type="button"
           variant="outline"
-          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 hover:border-black shadow"
+          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 dark:border-gray-600 hover:border-black dark:hover:border-gray-400 shadow dark:text-gray-200 dark:hover:bg-gray-700"
           onClick={() => signIn.google()}
         >
           <FcGoogle className="w-5 h-5" /> Google
         </Button>
       </div>
-      <div className="text-center mt-2 text-sm">
+      <div className="text-center mt-2 text-sm dark:text-gray-300">
         Don&apos;t have an account?{" "}
         <a
           href="/auth/signup"
-          className="text-gray-900 font-semibold underline hover:text-gray-700"
+          className="text-gray-900 dark:text-white font-semibold underline hover:text-gray-700 dark:hover:text-gray-300"
         >
           Sign up
         </a>

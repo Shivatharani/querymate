@@ -24,13 +24,13 @@ function Bubble({
     return (
       <div className="flex justify-end mb-4 sm:mb-6 animate-slideInRight">
         <div className="flex items-start gap-2 sm:gap-3 max-w-[85%] sm:max-w-[75%]">
-          <div className="bg-black text-white px-4 py-3 sm:px-6 sm:py-4 rounded-3xl rounded-tr-md shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <div className="bg-black dark:bg-white text-white dark:text-black px-4 py-3 sm:px-6 sm:py-4 rounded-3xl rounded-tr-md shadow-lg hover:shadow-xl transition-shadow duration-300">
             <div className="text-sm sm:text-[15px] leading-relaxed font-medium">
               {children}
             </div>
           </div>
-          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-800 flex items-center justify-center shadow-md">
-            <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-800 dark:bg-gray-200 flex items-center justify-center shadow-md">
+            <User className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-black" />
           </div>
         </div>
       </div>
@@ -39,11 +39,11 @@ function Bubble({
   return (
     <div className="flex justify-start mb-4 sm:mb-6 animate-slideInLeft">
       <div className="flex items-start gap-2 sm:gap-3 max-w-[90%] sm:max-w-[85%]">
-        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center shadow-md">
-          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 dark:from-gray-300 dark:to-gray-400 flex items-center justify-center shadow-md">
+          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-black" />
         </div>
-        <div className="bg-white border border-gray-200 text-gray-800 px-4 py-3 sm:px-6 sm:py-4 rounded-3xl rounded-tl-md shadow-md hover:shadow-lg transition-shadow duration-300">
-          <div className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-gray-900 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-code:text-gray-800 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-200">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 px-4 py-3 sm:px-6 sm:py-4 rounded-3xl rounded-tl-md shadow-md hover:shadow-lg transition-shadow duration-300">
+          <div className="prose prose-sm max-w-none prose-headings:text-gray-800 dark:prose-headings:text-gray-200 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-a:text-gray-900 dark:prose-a:text-gray-100 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 dark:prose-strong:text-white prose-code:text-gray-800 dark:prose-code:text-gray-200 prose-code:bg-gray-100 dark:prose-code:bg-gray-700 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-50 dark:prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-200 dark:prose-pre:border-gray-700">
             {children}
           </div>
         </div>
@@ -56,26 +56,26 @@ function TypingIndicator() {
   return (
     <div className="flex justify-start mb-4 sm:mb-6 animate-slideInLeft">
       <div className="flex items-start gap-2 sm:gap-3">
-        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 flex items-center justify-center shadow-md">
-          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-600 dark:from-gray-300 dark:to-gray-400 flex items-center justify-center shadow-md">
+          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-black" />
         </div>
-        <div className="bg-white border border-gray-200 px-6 py-4 sm:px-8 sm:py-5 rounded-3xl rounded-tl-md shadow-md">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-6 py-4 sm:px-8 sm:py-5 rounded-3xl rounded-tl-md shadow-md">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
               <span
-                className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce"
+                className="w-2.5 h-2.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
                 style={{ animationDelay: "0ms" }}
               ></span>
               <span
-                className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce"
+                className="w-2.5 h-2.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
                 style={{ animationDelay: "150ms" }}
               ></span>
               <span
-                className="w-2.5 h-2.5 bg-gray-400 rounded-full animate-bounce"
+                className="w-2.5 h-2.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
                 style={{ animationDelay: "300ms" }}
               ></span>
             </div>
-            <span className="text-xs sm:text-sm text-gray-500 ml-2">
+            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-2">
               Thinking...
             </span>
           </div>
@@ -211,7 +211,7 @@ export default function ChatBox({
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-gradient-to-b from-gray-50 to-white">
+    <div className="flex-1 flex flex-col min-h-0 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
       <style jsx global>{`
         @keyframes slideInRight {
           from {
@@ -256,19 +256,19 @@ export default function ChatBox({
                       h1: ({ ...props }) => (
                         <h1
                           {...props}
-                          className="text-2xl font-bold mt-4 mb-3 text-gray-900"
+                          className="text-2xl font-bold mt-4 mb-3 text-gray-900 dark:text-white"
                         />
                       ),
                       h2: ({ ...props }) => (
                         <h2
                           {...props}
-                          className="text-xl font-semibold mt-3 mb-2 text-gray-800"
+                          className="text-xl font-semibold mt-3 mb-2 text-gray-800 dark:text-gray-200"
                         />
                       ),
                       h3: ({ ...props }) => (
                         <h3
                           {...props}
-                          className="text-lg font-semibold mt-2 mb-2 text-gray-800"
+                          className="text-lg font-semibold mt-2 mb-2 text-gray-800 dark:text-gray-200"
                         />
                       ),
                       p: ({ ...props }) => (
@@ -295,38 +295,50 @@ export default function ChatBox({
         </ScrollArea.Viewport>
         <ScrollArea.Scrollbar
           orientation="vertical"
-          className="w-2 bg-gray-100 rounded-full"
+          className="w-2 bg-gray-100 dark:bg-gray-800 rounded-full"
         >
-          <ScrollArea.Thumb className="bg-gray-400 rounded-full hover:bg-gray-500 transition-colors" />
+          <ScrollArea.Thumb className="bg-gray-400 dark:bg-gray-600 rounded-full hover:bg-gray-500 dark:hover:bg-gray-500 transition-colors" />
         </ScrollArea.Scrollbar>
         <ScrollArea.Corner />
       </ScrollArea.Root>
 
-      <div className="flex-shrink-0 border-t bg-white shadow-lg">
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg">
         <div className="max-w-5xl mx-auto px-3 py-3 sm:px-6 sm:py-5 md:px-16 lg:px-24">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-gray-50 rounded-2xl p-2 border-2 border-transparent focus-within:border-gray-400 focus-within:bg-white transition-all duration-300 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-gray-50 dark:bg-gray-800 rounded-2xl p-2 border-2 border-transparent focus-within:border-gray-400 dark:focus-within:border-gray-600 focus-within:bg-white dark:focus-within:bg-gray-700 transition-all duration-300 shadow-sm">
             <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="w-full sm:w-[180px] bg-white border-0 focus:ring-0 h-10">
+              <SelectTrigger className="w-full sm:w-[180px] bg-white dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 border-0 focus:ring-0 h-10">
                 <SelectValue placeholder="Select AI" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gemini">
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700">
+                <SelectItem
+                  value="gemini"
+                  className="dark:text-gray-200 dark:focus:bg-gray-700"
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-base">🧠</span>
                     <span>Google Gemini</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="perplexity">
+                <SelectItem
+                  value="perplexity"
+                  className="dark:text-gray-200 dark:focus:bg-gray-700"
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-base">🔍</span>
                     <span>Perplexity</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="claude" disabled>
+                <SelectItem
+                  value="claude"
+                  disabled
+                  className="dark:text-gray-400"
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-base">🤖</span>
-                    <span className="text-gray-400">Claude</span>
-                    <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full ml-1">
+                    <span className="text-gray-400 dark:text-gray-500">
+                      Claude
+                    </span>
+                    <span className="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded-full ml-1">
                       Coming Soon
                     </span>
                   </div>
@@ -343,14 +355,14 @@ export default function ChatBox({
                     handleSubmit(e);
                   }
                 }}
-                className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-[15px] placeholder:text-gray-400 px-3 sm:px-4 h-10"
+                className="flex-1 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-[15px] placeholder:text-gray-400 dark:placeholder:text-gray-500 dark:text-white px-3 sm:px-4 h-10"
                 placeholder="Ask me anything..."
                 disabled={loading}
               />
               <Button
                 onClick={handleSubmit}
                 disabled={loading || !input.trim()}
-                className="bg-black hover:bg-gray-800 text-white rounded-xl px-4 sm:px-6 py-2 sm:py-3 h-10 font-semibold shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
+                className="bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white rounded-xl px-4 sm:px-6 py-2 sm:py-3 h-10 font-semibold shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
               >
                 <Send className="w-4 h-4" />
                 <span className="hidden sm:inline">Send</span>

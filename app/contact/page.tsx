@@ -21,13 +21,15 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900">
       <Navbar />
 
       <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Contact Us</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Contact Us
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Have a question or feedback? We&apos;d love to hear from you. Send
             us a message and we&apos;ll respond as soon as possible.
           </p>
@@ -35,16 +37,16 @@ export default function ContactPage() {
 
         <div className="grid md:grid-cols-2 gap-12">
           {/* Contact Form */}
-          <div className="bg-white rounded-2xl p-8 shadow-sm border">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm border border-gray-200 dark:border-gray-700">
             {submitted ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageSquare className="w-8 h-8 text-green-600" />
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                   Message Sent!
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-400">
                   Thank you for reaching out. We&apos;ll get back to you soon.
                 </p>
                 <Button
@@ -65,7 +67,7 @@ export default function ContactPage() {
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
                     Name
                   </label>
@@ -76,14 +78,14 @@ export default function ContactPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    className="w-full"
+                    className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
                     Email
                   </label>
@@ -94,14 +96,14 @@ export default function ContactPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full"
+                    className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   />
                 </div>
 
                 <div>
                   <label
                     htmlFor="message"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                   >
                     Message
                   </label>
@@ -112,13 +114,13 @@ export default function ContactPage() {
                     onChange={(e) => setMessage(e.target.value)}
                     required
                     rows={5}
-                    className="w-full resize-none"
+                    className="w-full resize-none dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-black hover:bg-gray-800 text-white font-medium py-3"
+                  className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white font-medium py-3"
                 >
                   Send Message
                 </Button>
@@ -128,19 +130,21 @@ export default function ContactPage() {
 
           {/* Contact Info */}
           <div className="space-y-8">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Email Us</h3>
-                  <p className="text-gray-600 text-sm mb-2">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Email Us
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
                     For general inquiries and support
                   </p>
                   <a
                     href="mailto:support@querymate.app"
-                    className="text-blue-600 hover:underline font-medium"
+                    className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
                   >
                     support@querymate.app
                   </a>
@@ -148,31 +152,35 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                     Live Chat
                   </h3>
-                  <p className="text-gray-600 text-sm mb-2">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
                     Available Monday to Friday, 9am - 5pm
                   </p>
-                  <span className="text-gray-500 text-sm">Coming soon</span>
+                  <span className="text-gray-500 dark:text-gray-500 text-sm">
+                    Coming soon
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Location</h3>
-                  <p className="text-gray-600 text-sm">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+                    Location
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
                     We&apos;re a remote-first company serving users worldwide.
                   </p>
                 </div>
@@ -180,14 +188,14 @@ export default function ContactPage() {
             </div>
 
             {/* FAQ Teaser */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
-              <h3 className="font-semibold text-gray-900 mb-2">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6 border border-blue-100 dark:border-blue-900/30">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
                 Frequently Asked Questions
               </h3>
-              <p className="text-gray-600 text-sm mb-4">
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                 Find quick answers to common questions about QueryMate.
               </p>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <li>• How do I reset my password?</li>
                 <li>• Which AI models are available?</li>
                 <li>• How is my data protected?</li>

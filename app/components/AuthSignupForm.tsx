@@ -75,16 +75,16 @@ export default function AuthSignupForm() {
 
   return (
     <form className="w-full" onSubmit={handleSubmit}>
-      <h2 className="text-3xl font-bold mb-2 text-center text-gray-900">
+      <h2 className="text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white">
         Create an account
       </h2>
-      <p className="mb-6 text-center text-gray-500">
+      <p className="mb-6 text-center text-gray-500 dark:text-gray-400">
         Sign up to start using QueryMate AI
       </p>
       <div className="mb-3">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 dark:text-gray-200">
           Name:{" "}
-          <span className="font-normal text-xs text-gray-400 ml-1">
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
             eg. Shiva M
           </span>
         </label>
@@ -96,12 +96,13 @@ export default function AuthSignupForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           suppressHydrationWarning
+          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
       </div>
       <div className="mb-3">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 dark:text-gray-200">
           Email:{" "}
-          <span className="font-normal text-xs text-gray-400 ml-1">
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
             eg. email@example.com
           </span>
         </label>
@@ -113,12 +114,13 @@ export default function AuthSignupForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           suppressHydrationWarning
+          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
       </div>
       <div className="mb-3 relative">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 dark:text-gray-200">
           Password:{" "}
-          <span className="font-normal text-xs text-gray-400 ml-1">
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
             eg. ••••••
           </span>
         </label>
@@ -130,10 +132,11 @@ export default function AuthSignupForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           suppressHydrationWarning
+          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
         <button
           type="button"
-          className="absolute top-8 right-3 text-gray-400 focus:outline-none"
+          className="absolute top-8 right-3 text-gray-400 dark:text-gray-500 focus:outline-none"
           onClick={() => setShowPass((s) => !s)}
           tabIndex={-1}
         >
@@ -141,9 +144,9 @@ export default function AuthSignupForm() {
         </button>
       </div>
       <div className="mb-4 relative">
-        <label className="block font-medium mb-1">
+        <label className="block font-medium mb-1 dark:text-gray-200">
           Confirm Password:{" "}
-          <span className="font-normal text-xs text-gray-400 ml-1">
+          <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
             6+ letters/numbers
           </span>
         </label>
@@ -155,32 +158,35 @@ export default function AuthSignupForm() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           suppressHydrationWarning
+          className="dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
         />
         <button
           type="button"
-          className="absolute top-8 right-3 text-gray-400 focus:outline-none"
+          className="absolute top-8 right-3 text-gray-400 dark:text-gray-500 focus:outline-none"
           onClick={() => setShowConfirm((s) => !s)}
           tabIndex={-1}
         >
           {showConfirm ? <EyeOpenIcon /> : <EyeClosedIcon />}
         </button>
       </div>
-      {error && <div className="text-red-500 mb-2">{error}</div>}
+      {error && (
+        <div className="text-red-500 dark:text-red-400 mb-2">{error}</div>
+      )}
       <Button
         type="submit"
-        className="w-full bg-black hover:bg-gray-800 text-white py-2 mb-4 font-bold shadow hover:shadow-lg transition"
+        className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white py-2 mb-4 font-bold shadow hover:shadow-lg transition"
         disabled={loading}
       >
         {loading ? "Signing up..." : "Sign up"}
       </Button>
-      <div className="my-4 text-center text-gray-400 font-medium text-xs">
+      <div className="my-4 text-center text-gray-400 dark:text-gray-500 font-medium text-xs">
         OR CONTINUE WITH
       </div>
       <div className="flex gap-4 mb-4">
         <Button
           type="button"
           variant="outline"
-          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 hover:border-black shadow"
+          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 dark:border-gray-600 hover:border-black dark:hover:border-gray-400 shadow dark:text-gray-200 dark:hover:bg-gray-700"
           onClick={() => signUp.github()}
         >
           <GitHubLogoIcon /> Github
@@ -188,17 +194,17 @@ export default function AuthSignupForm() {
         <Button
           type="button"
           variant="outline"
-          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 hover:border-black shadow"
+          className="w-1/2 flex items-center gap-2 justify-center border-gray-300 dark:border-gray-600 hover:border-black dark:hover:border-gray-400 shadow dark:text-gray-200 dark:hover:bg-gray-700"
           onClick={() => signUp.google()}
         >
           <FcGoogle className="w-5 h-5" /> Google
         </Button>
       </div>
-      <div className="text-center mt-2 text-sm">
+      <div className="text-center mt-2 text-sm dark:text-gray-300">
         Already have an account?{" "}
         <a
           href="/auth/login"
-          className="text-gray-900 font-semibold underline hover:text-gray-700"
+          className="text-gray-900 dark:text-white font-semibold underline hover:text-gray-700 dark:hover:text-gray-300"
         >
           Sign in
         </a>
