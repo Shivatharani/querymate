@@ -12,18 +12,18 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 lg:py-20">
           <div className="text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-4 py-1.5 mb-6">
-              <Sparkles className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-medium text-gray-700">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-gray-100 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 mb-4 sm:mb-6">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500" />
+              <span className="text-xs sm:text-sm font-medium text-gray-700">
                 Powered by Advanced AI
               </span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 tracking-tight mb-6">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight mb-4 sm:mb-6">
               Your Intelligent
               <br />
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -32,27 +32,27 @@ export default function HomePage() {
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto mb-8 sm:mb-10 px-4 sm:px-0">
               Experience seamless conversations with multiple AI models. Get
               instant answers, creative ideas, and intelligent assistance — all
               in one place.
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex items-center justify-center gap-4 mb-16">
-              <Link href="/auth/signup">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-16 px-4 sm:px-0">
+              <Link href="/auth/signup" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="font-semibold bg-black hover:bg-gray-800 text-white px-8 py-6 text-lg rounded-xl"
+                  className="w-full sm:w-auto font-semibold bg-black hover:bg-gray-800 text-white px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-xl"
                 >
                   Get Started Free
                 </Button>
               </Link>
-              <Link href="/auth/login">
+              <Link href="/auth/login" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="font-semibold px-8 py-6 text-lg rounded-xl border-2"
+                  className="w-full sm:w-auto font-semibold px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-xl border-2"
                 >
                   Sign In
                 </Button>
@@ -60,39 +60,41 @@ export default function HomePage() {
             </div>
 
             {/* Features Grid */}
-            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <MessageSquare className="w-6 h-6 text-blue-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-4xl mx-auto px-2 sm:px-0">
+              <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 shadow-sm border hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">
+                <h3 className="font-semibold text-base sm:text-lg mb-1.5 sm:mb-2">
                   Natural Conversations
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-xs sm:text-sm">
                   Chat naturally with AI that understands context and delivers
                   meaningful responses.
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <Zap className="w-6 h-6 text-purple-600" />
+              <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 shadow-sm border hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">Lightning Fast</h3>
-                <p className="text-gray-600 text-sm">
+                <h3 className="font-semibold text-base sm:text-lg mb-1.5 sm:mb-2">
+                  Lightning Fast
+                </h3>
+                <p className="text-gray-600 text-xs sm:text-sm">
                   Get instant responses powered by cutting-edge AI models for
                   maximum efficiency.
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <Globe className="w-6 h-6 text-green-600" />
+              <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 shadow-sm border hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center mb-3 sm:mb-4 mx-auto">
+                  <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">
+                <h3 className="font-semibold text-base sm:text-lg mb-1.5 sm:mb-2">
                   Multiple AI Models
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-xs sm:text-sm">
                   Choose from Google Gemini, Perplexity, and more AI models to
                   suit your needs.
                 </p>
