@@ -4,6 +4,25 @@ import useSWR, { mutate } from "swr";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   PlusIcon,
   Search,
@@ -60,6 +79,21 @@ export default function ChatSidebar({
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [conversationToEdit, setConversationToEdit] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+
   // SWR for user session
   const { data: sessionData } = useSWR("/api/auth/sessions");
   const user = sessionData?.user;
@@ -88,35 +122,48 @@ export default function ChatSidebar({
     return !search || chatTitle.toLowerCase().includes(search.toLowerCase());
   });
 
-  const handleEdit = async (id: string) => {
-    const currentChat = chats.find((c) => c.id === id);
-    const currentTitle = currentChat ? getChatTitle(currentChat) : "";
-    const newTitle = prompt("Edit chat title", currentTitle);
-    if (newTitle && newTitle.trim()) {
-      try {
-        const response = await fetch("/api/conversations", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ id, title: newTitle.trim() }),
-        });
+  const openEditDialog = (id: string, title: string) => {
+    setConversationToEdit({ id, title });
+    setEditTitle(title);
+    setEditDialogOpen(true);
+  };
 
-        if (response.ok) {
-          // Revalidate conversations
-          mutateChats();
-        } else {
-          alert("Failed to update conversation title");
-        }
-      } catch (error) {
-        console.error("Error updating title:", error);
+  const handleEdit = async () => {
+    if (!conversationToEdit || !editTitle.trim()) return;
+
+    try {
+      const response = await fetch("/api/conversations", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          id: conversationToEdit.id,
+          title: editTitle.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        // Revalidate conversations
+        mutateChats();
+        setEditDialogOpen(false);
+      } else {
         alert("Failed to update conversation title");
       }
+    } catch (error) {
+      console.error("Error updating title:", error);
+      alert("Failed to update conversation title");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!id || !confirm("Delete this conversation and all its messages?"))
-      return;
+  const openDeleteDialog = (id: string, title: string) => {
+    setConversationToDelete({ id, title });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!conversationToDelete) return;
+
+    const { id } = conversationToDelete;
 
     try {
       const response = await fetch("/api/conversations", {
@@ -129,7 +176,10 @@ export default function ChatSidebar({
       if (response.ok) {
         // Revalidate conversations
         mutateChats();
-        if (activeId === id) setActiveId(null);
+        if (activeId === id) {
+          setActiveId(null);
+          onSelectConversation(null, "New Chat");
+        }
       } else {
         alert("Failed to delete conversation");
       }
@@ -143,6 +193,84 @@ export default function ChatSidebar({
 
   return (
     <>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="dark:bg-gray-900 dark:border-gray-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="dark:text-white">
+              Delete Conversation
+            </AlertDialogTitle>
+            <AlertDialogDescription className="dark:text-gray-400">
+              Are you sure you want to delete{" "}
+              <span className="font-medium text-gray-900 dark:text-gray-200">
+                &quot;{conversationToDelete?.title || "this conversation"}&quot;
+              </span>
+              ? This action cannot be undone and all messages will be
+              permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Title Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="dark:bg-gray-900 dark:border-gray-800 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="dark:text-white">
+              Edit Conversation Title
+            </DialogTitle>
+            <DialogDescription className="dark:text-gray-400">
+              Enter a new title for this conversation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title" className="dark:text-gray-200">
+                Title
+              </Label>
+              <Input
+                id="title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                placeholder="Enter conversation title..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleEdit();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              className="dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEdit}
+              className="bg-black hover:bg-gray-800 text-white dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Mobile backdrop overlay */}
       {open && (
         <div
@@ -319,7 +447,7 @@ export default function ChatSidebar({
                           <DropdownMenu.Item
                             onSelect={(e) => {
                               e.preventDefault();
-                              handleEdit(chat.id);
+                              openEditDialog(chat.id, chatTitle);
                             }}
                             className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
                           >
@@ -330,7 +458,7 @@ export default function ChatSidebar({
                           <DropdownMenu.Item
                             onSelect={(e) => {
                               e.preventDefault();
-                              handleDelete(chat.id);
+                              openDeleteDialog(chat.id, chatTitle);
                             }}
                             className="px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
                           >
