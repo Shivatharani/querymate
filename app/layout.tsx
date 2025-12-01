@@ -2,6 +2,7 @@ import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SWRProvider } from "@/lib/swr-config";
 
 export default function RootLayout({
   children,
@@ -25,7 +26,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={false}
         >
-          {children}
+          <SWRProvider>{children}</SWRProvider>
           <ToastContainer />
         </ThemeProvider>
       </body>

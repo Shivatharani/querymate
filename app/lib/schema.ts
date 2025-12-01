@@ -1,5 +1,21 @@
 // lib/schema.ts
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  integer,
+} from "drizzle-orm/pg-core";
+
+//
+// --- Token Limits Configuration (Gemini only - Perplexity doesn't return token usage) ---
+//
+export const TOKEN_LIMITS = {
+  gemini: {
+    dailyTokens: 1_000_000, // 1M tokens per day
+    dailyRequests: 100,
+  },
+} as const;
 
 //
 // --- Better Auth required tables ---
@@ -12,6 +28,10 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // Token tracking (Gemini only)
+  tokensUsedGemini: integer("tokens_used_gemini").notNull().default(0),
+  requestsUsedGemini: integer("requests_used_gemini").notNull().default(0),
+  tokenResetAt: timestamp("token_reset_at").notNull().defaultNow(),
 });
 
 export const session = pgTable("session", {
@@ -75,5 +95,7 @@ export const messages = pgTable("messages", {
   }),
   role: text("role"), // user / assistant
   content: text("content"),
+  model: text("model"), // gemini / perplexity / bedrock
+  tokensUsed: integer("tokens_used"), // tokens consumed by this message
   createdAt: timestamp("created_at").defaultNow(),
 });

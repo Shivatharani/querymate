@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import ReactMarkdown from "react-markdown";
 import { Send, User, Bot } from "lucide-react";
+import { mutateConversations, mutateUsage } from "./ChatSidebar";
 
 function Bubble({
   role,
@@ -157,6 +158,9 @@ export default function ChatBox({
       });
 
       if (!conversationId) {
+        // New conversation created - revalidate sidebar
+        mutateConversations();
+
         const convRes = await fetch("/api/conversations", {
           credentials: "include",
         });
@@ -192,6 +196,8 @@ export default function ChatBox({
             return updated;
           });
         }
+        // Response complete - revalidate usage to show updated token count
+        mutateUsage();
       }
     } catch {
       setMessages((prev) => [

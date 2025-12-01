@@ -1,13 +1,76 @@
 // app/api/chat/route.ts
 import { db } from "@/lib/lib";
-import { messages, conversations } from "@/lib/schema";
+import { messages, conversations, user, TOKEN_LIMITS } from "@/lib/schema";
 import { streamText } from "ai";
 import { gemini } from "@/lib/ai-gemini";
 import { bedrock } from "@/lib/ai-bedrock";
 import { perplexity } from "@/lib/ai-perplexity";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-middleware";
+
+// Helper to check and reset daily tokens (Gemini only)
+async function checkAndResetDailyTokens(userId: string) {
+  const [userData] = await db.select().from(user).where(eq(user.id, userId));
+
+  if (!userData) return null;
+
+  const now = new Date();
+  const resetAt = new Date(userData.tokenResetAt);
+
+  // Check if we need to reset (new day)
+  if (
+    now.getDate() !== resetAt.getDate() ||
+    now.getMonth() !== resetAt.getMonth() ||
+    now.getFullYear() !== resetAt.getFullYear()
+  ) {
+    // Reset daily tokens
+    await db
+      .update(user)
+      .set({
+        tokensUsedGemini: 0,
+        requestsUsedGemini: 0,
+        tokenResetAt: now,
+      })
+      .where(eq(user.id, userId));
+
+    return {
+      ...userData,
+      tokensUsedGemini: 0,
+      requestsUsedGemini: 0,
+      tokenResetAt: now,
+    };
+  }
+
+  return userData;
+}
+
+// Helper to check if user has exceeded limits (Gemini only)
+function checkLimits(
+  userData: {
+    tokensUsedGemini: number;
+    requestsUsedGemini: number;
+  },
+  model: string,
+): { exceeded: boolean; message: string } {
+  // Only check limits for Gemini (Perplexity doesn't return token usage)
+  if (model === "gemini") {
+    if (userData.tokensUsedGemini >= TOKEN_LIMITS.gemini.dailyTokens) {
+      return {
+        exceeded: true,
+        message: `Daily token limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyTokens.toLocaleString()} tokens). Resets at midnight.`,
+      };
+    }
+    if (userData.requestsUsedGemini >= TOKEN_LIMITS.gemini.dailyRequests) {
+      return {
+        exceeded: true,
+        message: `Daily request limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyRequests} requests). Resets at midnight.`,
+      };
+    }
+  }
+
+  return { exceeded: false, message: "" };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,6 +106,18 @@ export async function POST(req: NextRequest) {
         { error: "Invalid model selected" },
         { status: 400 },
       );
+    }
+
+    // Check and reset daily tokens if needed
+    const userData = await checkAndResetDailyTokens(session.user.id);
+    if (!userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Check if user has exceeded limits
+    const limitCheck = checkLimits(userData, model);
+    if (limitCheck.exceeded) {
+      return NextResponse.json({ error: limitCheck.message }, { status: 429 });
     }
 
     // If no conversationId provided, create a new conversation
@@ -81,6 +156,8 @@ export async function POST(req: NextRequest) {
       conversationId,
       role: "user",
       content: message,
+      model: null,
+      tokensUsed: null,
     });
 
     // Load history
@@ -155,19 +232,39 @@ export async function POST(req: NextRequest) {
     });
 
     let full = "";
+    const finalConversationId = conversationId;
+    const finalModel = model;
+    const userId = session.user.id;
 
-    // Collect the full response
+    // Collect the full response and track tokens
     (async () => {
       for await (const chunk of response.textStream) {
         full += chunk;
       }
 
-      // Save assistant message after stream completes
+      // Get token usage from the response
+      const usage = await response.usage;
+      const totalTokens = usage?.totalTokens || 0;
+
+      // Save assistant message with token info
       await db.insert(messages).values({
-        conversationId,
+        conversationId: finalConversationId,
         role: "assistant",
         content: full,
+        model: finalModel,
+        tokensUsed: totalTokens,
       });
+
+      // Update user's token usage (Gemini only - Perplexity doesn't return token usage)
+      if (finalModel === "gemini") {
+        await db
+          .update(user)
+          .set({
+            tokensUsedGemini: sql`${user.tokensUsedGemini} + ${totalTokens}`,
+            requestsUsedGemini: sql`${user.requestsUsedGemini} + 1`,
+          })
+          .where(eq(user.id, userId));
+      }
     })();
 
     return response.toTextStreamResponse();
