@@ -18,6 +18,22 @@ const MenuIcon = ({ className = "w-6 h-6" }) => (
   </svg>
 );
 
+const CloseIcon = ({ className = "w-6 h-6" }) => (
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    viewBox="0 0 24 24"
+  >
+    <path
+      d="M18 6L6 18M6 6l12 12"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const LogoutIcon = ({ className = "w-5 h-5" }) => (
   <svg
     className={className}
@@ -63,7 +79,11 @@ export default function ChatPage() {
   }
 
   return (
+<<<<<<< HEAD
     <div className="h-screen w-screen flex bg-white text-black overflow-hidden">
+=======
+    <div className="h-screen w-screen flex bg-white dark:bg-gray-950 text-black dark:text-white overflow-hidden">
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
       <ChatSidebar
         open={sidebarOpen}
         setOpen={setSidebarOpen}
@@ -74,21 +94,41 @@ export default function ChatPage() {
         }}
       />
       <div className="flex-1 flex flex-col min-h-screen">
+<<<<<<< HEAD
         <header className="flex w-full items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+=======
+        <header className="flex w-full items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 relative z-40">
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
+<<<<<<< HEAD
               className="h-9 w-9 rounded-md hover:bg-gray-100"
+=======
+              className="h-9 w-9 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
               onClick={() => setSidebarOpen((o) => !o)}
               aria-label={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
               suppressHydrationWarning
             >
+<<<<<<< HEAD
               <MenuIcon className="w-5 h-5 text-black" />
             </Button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-black flex items-center justify-center">
                 <SparklesIcon className="w-4 h-4 text-white" />
+=======
+              {sidebarOpen ? (
+                <CloseIcon className="w-5 h-5 text-black dark:text-white" />
+              ) : (
+                <MenuIcon className="w-5 h-5 text-black dark:text-white" />
+              )}
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-md bg-black dark:bg-white flex items-center justify-center">
+                <SparklesIcon className="w-4 h-4 text-white dark:text-black" />
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
               </div>
               <h1 className="text-lg font-semibold tracking-tight">
                 QUERY MATE AI
@@ -96,7 +136,11 @@ export default function ChatPage() {
             </div>
           </div>
           <Button
+<<<<<<< HEAD
             className="ml-auto h-9 px-3 rounded-md bg-black text-white hover:bg-gray-900"
+=======
+            className="ml-auto h-9 px-3 rounded-md bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-200"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             onClick={handleLogout}
             suppressHydrationWarning
           >

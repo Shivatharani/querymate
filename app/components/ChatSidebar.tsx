@@ -30,9 +30,13 @@ import {
   Edit,
   Trash2,
   MessageSquare,
+<<<<<<< HEAD
   X,
+=======
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
   MoreVertical,
   Zap,
+  Infinity,
 } from "lucide-react";
 
 type Conversation = {
@@ -203,7 +207,11 @@ export default function ChatSidebar({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+<<<<<<< HEAD
               className="bg-black text-white hover:bg-gray-900"
+=======
+              className="bg-red-600 text-white hover:bg-red-700"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             >
               Delete
             </AlertDialogAction>
@@ -213,7 +221,11 @@ export default function ChatSidebar({
 
       {/* Edit title */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+<<<<<<< HEAD
         <DialogContent className="sm:max-w-md">
+=======
+        <DialogContent className="sm:max-w-md dark:bg-gray-900 dark:border-gray-800">
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
           <DialogHeader>
             <DialogTitle>Edit Conversation Title</DialogTitle>
             <DialogDescription>
@@ -228,11 +240,13 @@ export default function ChatSidebar({
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="Enter conversation title..."
+                className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleEdit();
                   }
                 }}
+                suppressHydrationWarning
               />
             </div>
           </div>
@@ -242,7 +256,11 @@ export default function ChatSidebar({
             </Button>
             <Button
               onClick={handleEdit}
+<<<<<<< HEAD
               className="bg-black text-white hover:bg-gray-900"
+=======
+              className="bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-200"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             >
               Save
             </Button>
@@ -261,6 +279,7 @@ export default function ChatSidebar({
 
       {/* Sidebar */}
       <aside
+<<<<<<< HEAD
         className={`fixed z-30 left-0 top-0 h-full w-72 md:w-80 transition-transform duration-300 ease-in-out bg-white border-r border-gray-200 flex flex-col ${
           open ? "translate-x-0" : "-translate-x-72 md:-translate-x-80"
         }`}
@@ -282,6 +301,18 @@ export default function ChatSidebar({
             {initial}
           </div>
           <div className="font-medium text-sm">
+=======
+        className={`fixed z-30 left-0 top-[57px] h-[calc(100%-57px)] w-72 md:w-80 transition-transform duration-300 ease-in-out bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col ${
+          open ? "translate-x-0" : "-translate-x-72 md:-translate-x-80"
+        }`}
+      >
+        {/* User info */}
+        <div className="flex flex-col items-center py-4 border-b border-gray-200 dark:border-gray-800">
+          <div className="w-10 h-10 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-sm font-semibold mb-2">
+            {initial}
+          </div>
+          <div className="font-medium text-sm dark:text-white">
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             {user?.name ?? "User"}
           </div>
           <div className="text-xs text-gray-500 px-4 text-center truncate max-w-full">
@@ -289,10 +320,18 @@ export default function ChatSidebar({
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Minimal usage */}
         {usage && (
           <div className="px-4 py-3 border-b border-gray-200 text-xs text-gray-600 space-y-1">
             <div className="flex items-center justify-between">
+=======
+        {/* Token Usage Display */}
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 text-xs space-y-2">
+          {/* Gemini */}
+          {usage && (
+            <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
                 <span>Google tokens</span>
@@ -302,8 +341,31 @@ export default function ChatSidebar({
                 {formatTokens(usage.gemini.tokensLimit)}
               </span>
             </div>
+<<<<<<< HEAD
+=======
+          )}
+          {/* Perplexity */}
+          <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1">
+              <Infinity className="w-3 h-3" />
+              <span>Perplexity</span>
+            </div>
+            <span className="font-mono text-green-600 dark:text-green-400">
+              Unlimited
+            </span>
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
           </div>
-        )}
+          {/* Groq */}
+          <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1">
+              <Infinity className="w-3 h-3" />
+              <span>Groq</span>
+            </div>
+            <span className="font-mono text-green-600 dark:text-green-400">
+              Unlimited
+            </span>
+          </div>
+        </div>
 
         {/* New chat + search */}
         <div className="flex flex-col px-4 pt-4 gap-2">
@@ -311,26 +373,46 @@ export default function ChatSidebar({
             onClick={() => {
               setActiveId(null);
               onSelectConversation(null, "New Chat");
+              setOpen(false);
             }}
+<<<<<<< HEAD
             className="flex items-center gap-2 justify-center bg-black text-white hover:bg-gray-900 h-9 rounded-md text-sm"
           >
             <PlusIcon className="w-4 h-4" /> New Chat
           </Button>
           <div className="flex items-center rounded-md border border-gray-300 px-2 py-1">
             <Search className="w-4 h-4 text-gray-500" />
+=======
+            className="flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-200 h-9 rounded-md text-sm"
+            suppressHydrationWarning
+          >
+            <PlusIcon className="w-4 h-4" /> New Chat
+          </Button>
+          <div className="flex items-center rounded-md border border-gray-300 dark:border-gray-700 px-2 py-1">
+            <Search className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             <Input
               type="text"
               placeholder="Search chats"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+<<<<<<< HEAD
               className="flex-1 border-0 px-2 py-1 text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+=======
+              className="flex-1 border-0 px-2 py-1 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-transparent dark:text-white"
+              suppressHydrationWarning
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             />
           </div>
         </div>
 
         {/* Conversations */}
         <nav className="flex-1 mt-4 mb-4 px-4 min-h-0 flex flex-col overflow-hidden">
+<<<<<<< HEAD
           <div className="mb-2 text-[11px] font-semibold text-gray-500 uppercase flex items-center gap-1">
+=======
+          <div className="mb-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
             <MessageSquare className="w-3 h-3" />
             <span>Recent conversations</span>
           </div>
@@ -344,17 +426,27 @@ export default function ChatSidebar({
                       key={chat.id}
                       className={`flex items-center gap-1 rounded-md px-2 py-1 ${
                         activeId === chat.id
+<<<<<<< HEAD
                           ? "bg-gray-100"
                           : "hover:bg-gray-100"
                       }`}
                     >
                       <button
                         className="text-left flex-1 min-w-0 py-1 text-sm text-gray-800"
+=======
+                          ? "bg-gray-100 dark:bg-gray-800"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <button
+                        className="text-left flex-1 min-w-0 py-1 text-sm text-gray-800 dark:text-gray-200"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                         onClick={() => {
                           setActiveId(chat.id);
                           onSelectConversation(chat.id, chatTitle);
                           setOpen(false);
                         }}
+                        suppressHydrationWarning
                       >
                         <span className="truncate">{chatTitle}</span>
                       </button>
@@ -363,24 +455,41 @@ export default function ChatSidebar({
                         <DropdownMenu.Trigger asChild>
                           <button
                             type="button"
+<<<<<<< HEAD
                             className="p-1 rounded hover:bg-gray-200"
+=======
+                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                             onClick={(e) => e.stopPropagation()}
                             aria-label="Conversation options"
+                            suppressHydrationWarning
                           >
+<<<<<<< HEAD
                             <MoreVertical className="w-3 h-3 text-gray-600" />
+=======
+                            <MoreVertical className="w-3 h-3 text-gray-600 dark:text-gray-400" />
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                           </button>
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content
                           side="right"
                           align="start"
+<<<<<<< HEAD
                           className="z-[99] bg-white border border-gray-200 rounded-md shadow-sm text-sm min-w-[150px] py-1"
+=======
+                          className="z-[99] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm text-sm min-w-[150px] py-1"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                         >
                           <DropdownMenu.Item
                             onSelect={(e) => {
                               e.preventDefault();
                               openEditDialog(chat.id, chatTitle);
                             }}
+<<<<<<< HEAD
                             className="px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-gray-100"
+=======
+                            className="px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                           >
                             <Edit className="w-3 h-3" />
                             <span>Edit</span>
@@ -391,7 +500,11 @@ export default function ChatSidebar({
                               e.preventDefault();
                               openDeleteDialog(chat.id, chatTitle);
                             }}
+<<<<<<< HEAD
                             className="px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-gray-100 text-red-600"
+=======
+                            className="px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                           >
                             <Trash2 className="w-3 h-3" />
                             <span>Delete</span>
@@ -402,8 +515,13 @@ export default function ChatSidebar({
                   );
                 })
               ) : (
+<<<<<<< HEAD
                 <div className="text-gray-400 text-sm py-8 text-center">
                   <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+=======
+                <div className="text-gray-400 dark:text-gray-500 text-sm py-8 text-center">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+>>>>>>> 05637ee425697f6acf13c430865782fe9eccb6f8
                   <p>No conversations yet</p>
                 </div>
               )}
