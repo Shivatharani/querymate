@@ -85,7 +85,7 @@ export default function AuthSignupForm() {
         <label className="block font-medium mb-1 dark:text-gray-200">
           Name:{" "}
           <span className="font-normal text-xs text-gray-400 dark:text-gray-500 ml-1">
-            eg. Shiva M
+            eg. John Doe 
           </span>
         </label>
         <Input
