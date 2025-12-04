@@ -1,40 +1,89 @@
 "use client";
 
-import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+const THEME_STORAGE_KEY = "theme";
+type Theme = "light" | "dark";
 
+function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === "light" || stored === "dark") return stored;
+
+  // fall back to system preference on first visit
+  const prefersDark = window.matchMedia?.(
+    "(prefers-color-scheme: dark)",
+  ).matches;
+  return prefersDark ? "dark" : "light";
+}
+
+export default function ThemeToggle({ className = "" }: { className?: string }) {
+  const [theme, setTheme] = useState<Theme>("light");
+
+  // initial theme sync
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
+    if (typeof window === "undefined") return;
+    const initial = getInitialTheme();
+    setTheme(initial);
+    document.documentElement.setAttribute("data-theme", initial);
+    if (initial === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    window.localStorage.setItem(THEME_STORAGE_KEY, initial);
   }, []);
 
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" className="h-9 w-9">
-        <Sun className="h-4 w-4" />
-      </Button>
-    );
-  }
+  // listen for changes from any other tab/page
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handler = (e: StorageEvent) => {
+      if (
+        e.key === THEME_STORAGE_KEY &&
+        (e.newValue === "light" || e.newValue === "dark")
+      ) {
+        const next = e.newValue as Theme;
+        setTheme(next);
+        document.documentElement.setAttribute("data-theme", next);
+        if (next === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      }
+    };
+
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  const toggleTheme = () => {
+    const next: Theme = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    document.documentElement.setAttribute("data-theme", next);
+    if (next === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(THEME_STORAGE_KEY, next);
+    }
+  };
+
+  const isDark = theme === "dark";
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-9 w-9 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label="Toggle theme"
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 ${className}`}
     >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4 text-yellow-500" />
-      ) : (
-        <Moon className="h-4 w-4 text-gray-700" />
-      )}
-    </Button>
+      {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+    </button>
   );
 }

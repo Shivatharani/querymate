@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 module.exports = {
-  darkMode: ["class"],
+  darkMode: ["class",'[data-theme="dark"]'], 
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./pages/**/*.{js,ts,jsx,tsx}",

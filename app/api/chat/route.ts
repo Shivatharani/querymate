@@ -1,4 +1,3 @@
-// app/api/chat/route.ts
 import { db } from "@/lib/lib";
 import { messages, conversations, user, TOKEN_LIMITS } from "@/lib/schema";
 import { streamText } from "ai";
@@ -60,7 +59,7 @@ function checkLimits(
       return {
         exceeded: true,
         message: `Daily token limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyTokens.toLocaleString()} tokens). Resets at midnight.`,
-      };
+      }; 
     }
     if (userData.requestsUsedGemini >= TOKEN_LIMITS.gemini.dailyRequests) {
       return {
@@ -73,6 +72,41 @@ function checkLimits(
   return { exceeded: false, message: "" };
 }
 
+// Helper to determine if a model supports vision/files
+function supportsMultimodal(provider: string): boolean {
+  // Gemini models support vision and files
+  // Groq vision models support vision only
+  // Perplexity doesn't support vision in their current API
+  return provider === "google" || provider === "groq";
+}
+
+// Helper to check file type support
+function getFileSupport(mimeType: string, provider: string): {
+  supported: boolean;
+  type: 'image' | 'pdf' | 'text' | 'audio' | 'unsupported';
+} {
+  if (mimeType.startsWith('image/')) {
+    return { supported: true, type: 'image' };
+  }
+  
+  // PDFs - supported by Gemini
+  if (mimeType === 'application/pdf' && provider === 'google') {
+    return { supported: true, type: 'pdf' };
+  }
+  
+  // Audio files - supported by Gemini
+  if ((mimeType === 'audio/wav' || mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') && provider === 'google') {
+    return { supported: true, type: 'audio' };
+  }
+  
+  // Text files - we'll extract and add as text
+  if (mimeType === 'text/plain' || mimeType.startsWith('text/')) {
+    return { supported: true, type: 'text' };
+  }
+  
+  return { supported: false, type: 'unsupported' };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getAuthSession(req);
@@ -81,17 +115,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    let { conversationId } = body as { conversationId?: string };
-    const {
-      message,
-      title,
-      model = "gemini-2.5-flash", // Default model
-    } = body as {
-      message?: string;
-      title?: string;
-      model?: string;
-    };
+    // Parse formData to handle file uploads
+    const formData = await req.formData();
+    
+    let conversationId = formData.get("conversationId") as string | null;
+    const message = formData.get("message") as string;
+    const title = formData.get("title") as string | null;
+    const model = (formData.get("model") as string) || "gemini-2.5-flash";
+    
+    // Get all files from formData
+    const files: File[] = [];
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("file_") && value instanceof File) {
+        files.push(value);
+      }
+    }
 
     if (!message) {
       return NextResponse.json(
@@ -107,6 +145,25 @@ export async function POST(req: NextRequest) {
         { error: "Invalid model selected" },
         { status: 400 },
       );
+    }
+
+    // Check if files are provided but model doesn't support multimodal
+    if (files.length > 0 && !supportsMultimodal(modelConfig.provider)) {
+      return NextResponse.json(
+        { error: `The selected model (${model}) does not support image/file inputs. Please use a Gemini model or Groq vision model.` },
+        { status: 400 },
+      );
+    }
+
+    // Check file type support
+    for (const file of files) {
+      const fileSupport = getFileSupport(file.type, modelConfig.provider);
+      if (!fileSupport.supported) {
+        return NextResponse.json(
+          { error: `File type ${file.type} is not supported. Supported: images (all), PDFs/audio (Gemini only), text files (all).` },
+          { status: 400 },
+        );
+      }
     }
 
     // Check and reset daily tokens if needed
@@ -152,11 +209,74 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Save user message
+    // Process files and create content parts (AI SDK official format)
+    const fileMetadata: Array<{
+      name: string;
+      type: string;
+      size: number;
+    }> = [];
+
+    const contentParts: Array<
+      | { type: 'text'; text: string }
+      | { type: 'image'; image: Buffer | Uint8Array | string }
+      | { type: 'file'; data: Buffer | Uint8Array; mimeType: string; filename?: string }
+    > = [];
+    
+    // Add text message
+    contentParts.push({
+      type: "text",
+      text: message,
+    });
+
+    // Process each file using AI SDK official format
+    for (const file of files) {
+      const mimeType = file.type;
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const fileSupport = getFileSupport(mimeType, modelConfig.provider);
+      
+      fileMetadata.push({
+        name: file.name,
+        type: mimeType,
+        size: file.size,
+      });
+
+      if (fileSupport.type === 'image') {
+        // Image part - AI SDK official format (Buffer)
+        contentParts.push({
+          type: "image",
+          image: buffer, // Use Buffer directly (AI SDK supports this)
+        });
+      } else if (fileSupport.type === 'pdf' || fileSupport.type === 'audio') {
+        // File part - AI SDK official format for PDFs and audio
+        contentParts.push({
+          type: "file",
+          data: buffer, // Use Buffer directly
+          mimeType: mimeType,
+          filename: file.name, // Optional but helpful
+        });
+      } else if (fileSupport.type === 'text') {
+        // Text file - extract content and add as text part
+        const textContent = buffer.toString('utf-8');
+        contentParts.push({
+          type: "text",
+          text: `\n\n[Content from file: ${file.name}]\n${textContent}\n[End of file content]\n`,
+        });
+      }
+    }
+
+    // Save user message with file metadata
+    const userMessageContent = files.length > 0 
+      ? JSON.stringify({
+          text: message,
+          files: fileMetadata,
+        })
+      : message;
+
     await db.insert(messages).values({
       conversationId,
       role: "user",
-      content: message,
+      content: userMessageContent,
       model: null,
       tokensUsed: null,
     });
@@ -228,18 +348,50 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const formatted = history.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content || "",
-    }));
+    // Format history - handle both text and multimodal messages
+    const formatted = history.map((m) => {
+      try {
+        // Try to parse as JSON (multimodal message)
+        const parsed = JSON.parse(m.content || "{}");
+        if (parsed.text && parsed.files) {
+          // This is a multimodal message, but we can only include text in history
+          // The current message will have the images
+          return {
+            role: m.role as "user" | "assistant",
+            content: parsed.text,
+          };
+        }
+      } catch {
+        // Not JSON, treat as plain text
+      }
+      
+      return {
+        role: m.role as "user" | "assistant",
+        content: m.content || "",
+      };
+    });
+
+    // Remove the last user message from formatted (we'll replace it with multimodal version)
+    formatted.pop();
 
     // Select AI model based on user choice
     const selectedModel = getAIModel(modelConfig);
 
-    // Call AI
+    // Prepare the final messages array with proper AI SDK format
+    const finalMessages = [
+      ...formatted,
+      {
+        role: "user" as const,
+        content: files.length > 0 ? contentParts : message,
+      },
+    ];
+
+    console.log('Sending to AI with content parts:', contentParts.length, 'parts');
+
+    // Call AI with multimodal support using official AI SDK format
     const response = await streamText({
       model: selectedModel,
-      messages: formatted,
+      messages: finalMessages,
     });
 
     let full = "";
@@ -251,32 +403,38 @@ export async function POST(req: NextRequest) {
 
     // Collect the full response and track tokens
     (async () => {
-      for await (const chunk of response.textStream) {
-        full += chunk;
-      }
+      try {
+        for await (const chunk of response.textStream) {
+          full += chunk;
+        }
 
-      // Get token usage from the response (if supported)
-      const usage = await response.usage;
-      const totalTokens = supportsTokenUsage ? usage?.totalTokens || 0 : 0;
+        console.log('Full response received, length:', full.length);
 
-      // Save assistant message with token info
-      await db.insert(messages).values({
-        conversationId: finalConversationId,
-        role: "assistant",
-        content: full,
-        model: finalModel,
-        tokensUsed: totalTokens,
-      });
+        // Get token usage from the response (if supported)
+        const usage = await response.usage;
+        const totalTokens = supportsTokenUsage ? usage?.totalTokens || 0 : 0;
 
-      // Update user's token usage (Google/Groq models that support token tracking)
-      if (finalProvider === "google" && totalTokens > 0) {
-        await db
-          .update(user)
-          .set({
-            tokensUsedGemini: sql`${user.tokensUsedGemini} + ${totalTokens}`,
-            requestsUsedGemini: sql`${user.requestsUsedGemini} + 1`,
-          })
-          .where(eq(user.id, userId));
+        // Save assistant message with token info
+        await db.insert(messages).values({
+          conversationId: finalConversationId,
+          role: "assistant",
+          content: full,
+          model: finalModel,
+          tokensUsed: totalTokens,
+        });
+
+        // Update user's token usage (Google/Groq models that support token tracking)
+        if (finalProvider === "google" && totalTokens > 0) {
+          await db
+            .update(user)
+            .set({
+              tokensUsedGemini: sql`${user.tokensUsedGemini} + ${totalTokens}`,
+              requestsUsedGemini: sql`${user.requestsUsedGemini} + 1`,
+            })
+            .where(eq(user.id, userId));
+        }
+      } catch (error) {
+        console.error('Error in response processing:', error);
       }
     })();
 

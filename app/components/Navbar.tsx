@@ -1,18 +1,19 @@
 "use client";
+
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-16">
+    <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between sm:h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -20,19 +21,19 @@ export default function Navbar() {
               alt="QueryMate Logo"
               width={36}
               height={36}
-              className="rounded-lg w-7 h-7 sm:w-9 sm:h-9"
+              className="h-7 w-7 rounded-lg sm:h-9 sm:w-9"
             />
-            <span className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">
+            <span className="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">
               QueryMate
             </span>
           </Link>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden sm:flex items-center gap-2 sm:gap-3">
+          <div className="hidden items-center gap-2 sm:flex sm:gap-3">
             <Link href="/">
               <Button
                 variant="ghost"
-                className="font-medium text-sm sm:text-base dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800"
+                className="text-sm font-medium dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white sm:text-base"
               >
                 Home
               </Button>
@@ -40,31 +41,31 @@ export default function Navbar() {
             <Link href="/auth/login">
               <Button
                 variant="ghost"
-                className="font-medium text-sm sm:text-base dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-800"
+                className="text-sm font-medium dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white sm:text-base"
               >
                 Sign In
               </Button>
             </Link>
             <Link href="/auth/signup">
-              <Button className="font-medium bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white text-sm sm:text-base">
+              <Button className="text-sm font-medium bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 sm:text-base">
                 Sign Up
               </Button>
             </Link>
             <ThemeToggle />
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="sm:hidden flex items-center gap-2">
+          {/* Mobile Menu Button + Theme */}
+          <div className="flex items-center gap-2 sm:hidden">
             <ThemeToggle />
             <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
               ) : (
-                <Menu className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300" />
               )}
             </button>
           </div>
@@ -72,24 +73,24 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-gray-200 dark:border-gray-800 py-4 space-y-2">
+          <div className="space-y-2 border-t border-gray-200 py-4 dark:border-gray-800 sm:hidden">
             <Link
               href="/"
-              className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium"
+              className="block rounded-lg px-4 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               href="/auth/login"
-              className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium"
+              className="block rounded-lg px-4 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               onClick={() => setMobileMenuOpen(false)}
             >
               Sign In
             </Link>
             <Link
               href="/auth/signup"
-              className="block mx-4 text-center py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg font-medium"
+              className="mx-4 block rounded-lg bg-black py-2 text-center font-medium text-white dark:bg-white dark:text-black"
               onClick={() => setMobileMenuOpen(false)}
             >
               Sign Up

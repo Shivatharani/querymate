@@ -5,6 +5,7 @@ import {
   timestamp,
   boolean,
   integer,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 //
@@ -94,8 +95,47 @@ export const messages = pgTable("messages", {
     onDelete: "cascade",
   }),
   role: text("role"), // user / assistant
+  
+  // Content field can store:
+  // 1. Plain text string
+  // 2. JSON string with format: { text: string, files: Array<{name, type, size}> }
   content: text("content"),
-  model: text("model"), // gemini / perplexity / bedrock
+  
+  // Optional: Separate column for file attachments metadata
+  // This makes it easier to query messages with attachments
+  // Type: Array<{ name: string, type: string, size: number, url?: string }>
+  attachments: jsonb("attachments").$type<
+    Array<{
+      name: string;
+      type: string;
+      size: number;
+      url?: string; // Optional: if storing files in Supabase Storage
+    }>
+  >(),
+  
+  model: text("model"), // gemini / perplexity / groq
   tokensUsed: integer("tokens_used"), // tokens consumed by this message
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Type exports for TypeScript
+export type User = typeof user.$inferSelect;
+export type NewUser = typeof user.$inferInsert;
+export type Session = typeof session.$inferSelect;
+export type NewSession = typeof session.$inferInsert;
+export type Account = typeof account.$inferSelect;
+export type NewAccount = typeof account.$inferInsert;
+export type Verification = typeof verification.$inferSelect;
+export type NewVerification = typeof verification.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+
+// Helper type for file attachments
+export type FileAttachment = {
+  name: string;
+  type: string;
+  size: number;
+  url?: string;
+};
