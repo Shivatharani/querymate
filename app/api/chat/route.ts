@@ -4,6 +4,7 @@ import { streamText } from "ai";
 import { gemini } from "@/lib/ai-gemini";
 import { perplexity } from "@/lib/ai-perplexity";
 import { groq } from "@/lib/ai-groq";
+import { google } from "@ai-sdk/google";
 import { MODELS, getModel } from "@/lib/models";
 import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
@@ -388,10 +389,18 @@ export async function POST(req: NextRequest) {
 
     console.log('Sending to AI with content parts:', contentParts.length, 'parts');
 
+    // Prepare tools for Google models
+    const tools: any = modelConfig.provider === "google" 
+      ? {
+          google_search: google.tools.googleSearch({}),
+        }
+      : undefined;
+
     // Call AI with multimodal support using official AI SDK format
     const response = await streamText({
       model: selectedModel,
       messages: finalMessages,
+      tools,
     });
 
     let full = "";
