@@ -6,10 +6,14 @@ import ReactMarkdown from "react-markdown";
 import {
   PlusIcon,
   MicIcon,
+  MicOffIcon,
   Globe2,
   CornerDownLeftIcon,
   Copy as CopyIcon,
   Check as CheckIcon,
+  X as XIcon,
+  FileIcon,
+  ImageIcon,
 } from "lucide-react";
 
 import { mutateConversations, mutateUsage } from "./ChatSidebar";
@@ -36,9 +40,12 @@ import {
   Suggestion,
 } from "@/components/ai-elements/suggestion";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type ChatMessage = { 
+  role: "user" | "assistant"; 
+  content: string;
+  files?: Array<{ name: string; type: string; size: number }>;
+};
 
-// build model options
 const PROMPT_MODEL_OPTIONS = Object.keys(
   MODEL_GROUPS as Record<Provider, (typeof MODEL_GROUPS)[Provider]>,
 ).flatMap((provider) => {
@@ -54,10 +61,8 @@ const DEFAULT_MODEL_ID =
   PROMPT_MODEL_OPTIONS[0]?.id ??
   "gemini-2.5-flash";
 
-// must match the key used in ThemeToggle / Navbar
-const THEME_STORAGE_KEY = "theme"; // "light" | "dark"
+const THEME_STORAGE_KEY = "theme";
 
-// ChatGPT-style code block with copy button
 function CodeBlock({
   inline,
   className,
@@ -146,6 +151,66 @@ function TypingIndicator({ isSearching }: { isSearching: boolean }) {
   );
 }
 
+// Helper to format file size
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// File preview component
+function FilePreview({ 
+  file, 
+  onRemove 
+}: { 
+  file: File; 
+  onRemove: () => void;
+}) {
+  const isImage = file.type.startsWith('image/');
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [file, isImage]);
+
+  return (
+    <div className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
+      {isImage && preview ? (
+        <img 
+          src={preview} 
+          alt={file.name} 
+          className="h-12 w-12 rounded object-cover"
+        />
+      ) : (
+        <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-200 dark:bg-gray-700">
+          <FileIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+        </div>
+      )}
+      <div className="flex-1 overflow-hidden">
+        <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-300">
+          {file.name}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {formatFileSize(file.size)}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+      >
+        <XIcon className="h-4 w-4 text-gray-500" />
+      </button>
+    </div>
+  );
+}
+
 export default function ChatBox({
   conversationId,
   setConversationId,
@@ -162,8 +227,11 @@ export default function ChatBox({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [searchEnabled, setSearchEnabled] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
 
-  // theme state; synced with Navbar/ThemeToggle via localStorage
+  const recognitionRef = useRef<any>(null);
+
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
@@ -171,7 +239,88 @@ export default function ChatBox({
 
   const hasHistory = conversationId !== null && messages.length > 0;
 
-  // single clear suggestions list
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      setSpeechSupported(!!SpeechRecognition);
+    }
+  }, []);
+
+  const startListening = () => {
+    if (typeof window === "undefined") return;
+    
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in your browser. Please use Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        setInput((prev) => prev + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+      if (event.error === "not-allowed") {
+        alert("Microphone access denied. Please allow microphone access in your browser settings.");
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
   const defaultSuggestions = [
     "Summarize this text",
     "Explain this in simple terms",
@@ -179,7 +328,6 @@ export default function ChatBox({
     "Brainstorm ideas for a project",
   ];
 
-  // suggestions: filter default list by current input
   useEffect(() => {
     const timeout = setTimeout(() => {
       const trimmed = input.trim();
@@ -199,7 +347,6 @@ export default function ChatBox({
     setSuggestions(defaultSuggestions);
   }, []);
 
-  // theme: initial sync from localStorage / <html>
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -209,14 +356,12 @@ export default function ChatBox({
     document.documentElement.setAttribute("data-theme", initial);
   }, []);
 
-  // when theme changes here, update localStorage + <html>
   useEffect(() => {
     if (typeof window === "undefined") return;
     document.documentElement.setAttribute("data-theme", theme);
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  // listen for changes from other pages/tabs so everything stays in sync
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = (e: StorageEvent) => {
@@ -232,7 +377,6 @@ export default function ChatBox({
     return () => window.removeEventListener("storage", handler);
   }, []);
 
-  // load history
   useEffect(() => {
     let isMounted = true;
     async function loadHistory(id: string) {
@@ -241,9 +385,30 @@ export default function ChatBox({
       });
       const data = await res.json();
       if (!isMounted) return;
+      
+      // Parse messages and extract file metadata
+      const parsedMessages = data.messages?.map((msg: any) => {
+        try {
+          const parsed = JSON.parse(msg.content);
+          if (parsed.text && parsed.files) {
+            return {
+              role: msg.role,
+              content: parsed.text,
+              files: parsed.files,
+            };
+          }
+        } catch {
+          // Not JSON, regular message
+        }
+        return {
+          role: msg.role,
+          content: msg.content,
+        };
+      }) || [];
+      
       setMessages(
-        data.messages?.length
-          ? data.messages
+        parsedMessages.length
+          ? parsedMessages
           : [{ role: "assistant", content: chatTitle || "Chat started." }],
       );
     }
@@ -257,7 +422,6 @@ export default function ChatBox({
     };
   }, [conversationId, chatTitle]);
 
-  // auto-scroll
   useEffect(() => {
     if (scrollRootRef.current) {
       scrollRootRef.current.scrollTop = scrollRootRef.current.scrollHeight;
@@ -268,15 +432,30 @@ export default function ChatBox({
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+    // Add user message with file metadata
+    const userMessage: ChatMessage = {
+      role: "user",
+      content: trimmed,
+    };
+    
+    if (files.length > 0) {
+      userMessage.files = files.map(f => ({
+        name: f.name,
+        type: f.type,
+        size: f.size,
+      }));
+    }
+
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
 
     const formData = new FormData();
     formData.append("message", trimmed);
     formData.append("model", selectedModel);
-    formData.append("search", searchEnabled ? "on" : "off");
     if (conversationId) formData.append("conversationId", conversationId);
+    
+    // Append files with proper naming
     files.forEach((file, index) => {
       formData.append(`file_${index}`, file);
     });
@@ -287,6 +466,11 @@ export default function ChatBox({
         credentials: "include",
         body: formData,
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to send message');
+      }
 
       if (!conversationId) {
         mutateConversations();
@@ -328,12 +512,15 @@ export default function ChatBox({
         mutateUsage();
         mutateConversations();
       }
-    } catch {
+    } catch (error) {
+      console.error('Chat error:', error);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Unable to connect. Please try again.",
+          content: error instanceof Error 
+            ? `Error: ${error.message}` 
+            : "Unable to connect. Please try again.",
         },
       ]);
     }
@@ -348,7 +535,6 @@ export default function ChatBox({
     sendChatMessage(text);
   };
 
-  // submit on Enter, newline on Shift+Enter
   const handleTextareaKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -373,12 +559,21 @@ export default function ChatBox({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...newFiles]);
+    }
+    // Reset input so same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
   const handleFileUploadClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSearchClick = () => {
@@ -393,18 +588,17 @@ export default function ChatBox({
 
   return (
     <div className="flex min-h-screen flex-col bg-white pb-3 dark:bg-[#050509]">
-      {/* top bar for theme toggle; align near Logout in page layout */}
       <div className="flex items-center justify-end px-4 pt-3">
         <button
           type="button"
           onClick={handleThemeToggle}
           className="h-8 rounded-full bg-gray-100 px-3 text-xs text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+          suppressHydrationWarning
         >
           {theme === "light" ? "Dark mode" : "Light mode"}
         </button>
       </div>
 
-      {/* messages */}
       <div className="min-h-0 flex-1">
         <ScrollArea.Root type="scroll" className="h-full w-full">
           <ScrollArea.Viewport
@@ -421,7 +615,6 @@ export default function ChatBox({
                     Choose a model and ask anything to get started.
                   </p>
 
-                  {/* suggestions: clear, no internal scrolling */}
                   <div className="w-full max-w-2xl">
                     <Suggestions className="flex flex-wrap justify-center gap-2">
                       {suggestions.map((s) => (
@@ -431,7 +624,6 @@ export default function ChatBox({
                           onClick={handleSuggestionClick}
                           variant="outline"
                           size="sm"
-                          className="bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                         />
                       ))}
                     </Suggestions>
@@ -443,7 +635,33 @@ export default function ChatBox({
                     {messages.map((m, i) => (
                       <Message key={i} from={m.role}>
                         <MessageContent>
-                          {m.role === "assistant" ? (
+                          {m.role === "user" ? (
+                            <div>
+                              <p className="mb-2">{m.content}</p>
+                              {m.files && m.files.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {m.files.map((file, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-gray-700 dark:bg-gray-800"
+                                    >
+                                      {file.type.startsWith('image/') ? (
+                                        <ImageIcon className="h-4 w-4 text-gray-500" />
+                                      ) : (
+                                        <FileIcon className="h-4 w-4 text-gray-500" />
+                                      )}
+                                      <span className="text-gray-700 dark:text-gray-300">
+                                        {file.name}
+                                      </span>
+                                      <span className="text-gray-400">
+                                        ({formatFileSize(file.size)})
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
                             <div className="prose max-w-none text-gray-900 dark:prose-invert dark:text-gray-50">
                               <ReactMarkdown
                                 components={{
@@ -453,8 +671,6 @@ export default function ChatBox({
                                 {m.content}
                               </ReactMarkdown>
                             </div>
-                          ) : (
-                            m.content
                           )}
                         </MessageContent>
                       </Message>
@@ -475,16 +691,26 @@ export default function ChatBox({
         </ScrollArea.Root>
       </div>
 
-      {/* bottom prompt card */}
       <div className="w-full border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-[#050509]">
         <div className="mx-auto flex max-w-3xl flex-col gap-3 px-3 pb-6 pt-4 sm:px-4 md:px-0">
+          {/* File previews */}
+          {files.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {files.map((file, index) => (
+                <FilePreview
+                  key={index}
+                  file={file}
+                  onRemove={() => handleRemoveFile(index)}
+                />
+              ))}
+            </div>
+          )}
+
           <div className="flex w-full justify-center">
-            {/* ChatGPT-style input */}
             <form
               onSubmit={handlePromptSubmit}
               className="flex w-full flex-col rounded-2xl border border-gray-200 bg-white shadow-sm hover:border-gray-300 dark:border-gray-800 dark:bg-[#11111a]"
             >
-              {/* Top: textarea */}
               <div className="px-4 pt-3">
                 <textarea
                   value={input}
@@ -496,16 +722,15 @@ export default function ChatBox({
                 />
               </div>
 
-              {/* Hidden file input */}
               <input
                 type="file"
                 multiple
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.txt,.mp3,.wav"
               />
 
-              {/* Bottom: icons row */}
               <div className="mt-1 flex items-center justify-between px-4 pb-3 pt-2">
                 <div className="flex items-center gap-1">
                   <PromptInputButton
@@ -520,11 +745,21 @@ export default function ChatBox({
 
                   <PromptInputButton
                     size="icon-sm"
-                    aria-label="Voice input"
+                    aria-label={isListening ? "Stop voice input" : "Start voice input"}
                     type="button"
-                    className="h-8 w-8 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    onClick={toggleVoiceInput}
+                    disabled={!speechSupported}
+                    className={`h-8 w-8 rounded-full transition-colors ${
+                      isListening 
+                        ? "bg-red-500 text-white hover:bg-red-600 animate-pulse" 
+                        : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    } ${!speechSupported ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
-                    <MicIcon className="h-4 w-4 text-gray-600 dark:text-gray-200" />
+                    {isListening ? (
+                      <MicOffIcon className="h-4 w-4 text-white" />
+                    ) : (
+                      <MicIcon className="h-4 w-4 text-gray-600 dark:text-gray-200" />
+                    )}
                   </PromptInputButton>
 
                   <PromptInputButton
@@ -581,12 +816,6 @@ export default function ChatBox({
               </div>
             </form>
           </div>
-
-          {files.length > 0 && (
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              {files.length} file(s) selected
-            </div>
-          )}
 
           <p className="text-center text-[11px] text-gray-400 dark:text-gray-500">
             Query Mate AI can make mistakes. Consider checking important

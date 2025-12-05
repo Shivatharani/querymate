@@ -1,5 +1,5 @@
 import { db } from "@/lib/lib";
-import { messages, conversations, user, TOKEN_LIMITS } from "@/lib/schema";
+import { messages, conversations, user } from "@/lib/schema";
 import { streamText } from "ai";
 import { gemini } from "@/lib/ai-gemini";
 import { perplexity } from "@/lib/ai-perplexity";
@@ -9,8 +9,16 @@ import { MODELS, getModel } from "@/lib/models";
 import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-middleware";
+import { Buffer } from "buffer";
 
-// Helper to check and reset daily tokens (Gemini only)
+// Define TOKEN_LIMITS here to avoid import issues
+const TOKEN_LIMITS = {
+  gemini: {
+    dailyTokens: 1_000_000,
+    dailyRequests: 100,
+  },
+} as const;
+
 async function checkAndResetDailyTokens(userId: string) {
   const [userData] = await db.select().from(user).where(eq(user.id, userId));
 
@@ -19,13 +27,11 @@ async function checkAndResetDailyTokens(userId: string) {
   const now = new Date();
   const resetAt = new Date(userData.tokenResetAt);
 
-  // Check if we need to reset (new day)
   if (
     now.getDate() !== resetAt.getDate() ||
     now.getMonth() !== resetAt.getMonth() ||
     now.getFullYear() !== resetAt.getFullYear()
   ) {
-    // Reset daily tokens
     await db
       .update(user)
       .set({
@@ -46,7 +52,6 @@ async function checkAndResetDailyTokens(userId: string) {
   return userData;
 }
 
-// Helper to check if user has exceeded limits (Gemini only for now)
 function checkLimits(
   userData: {
     tokensUsedGemini: number;
@@ -54,13 +59,12 @@ function checkLimits(
   },
   provider: string,
 ): { exceeded: boolean; message: string } {
-  // Only check limits for Google models (they return token usage)
   if (provider === "google") {
     if (userData.tokensUsedGemini >= TOKEN_LIMITS.gemini.dailyTokens) {
       return {
         exceeded: true,
         message: `Daily token limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyTokens.toLocaleString()} tokens). Resets at midnight.`,
-      }; 
+      };
     }
     if (userData.requestsUsedGemini >= TOKEN_LIMITS.gemini.dailyRequests) {
       return {
@@ -73,39 +77,77 @@ function checkLimits(
   return { exceeded: false, message: "" };
 }
 
-// Helper to determine if a model supports vision/files
 function supportsMultimodal(provider: string): boolean {
-  // Gemini models support vision and files
-  // Groq vision models support vision only
-  // Perplexity doesn't support vision in their current API
+  // Providers that support image/file parts with AI SDK v3
   return provider === "google" || provider === "groq";
 }
 
-// Helper to check file type support
-function getFileSupport(mimeType: string, provider: string): {
+function getFileSupport(
+  mimeType: string,
+  provider: string,
+): {
   supported: boolean;
-  type: 'image' | 'pdf' | 'text' | 'audio' | 'unsupported';
+  type: "image" | "pdf" | "text" | "audio" | "document" | "unsupported";
 } {
-  if (mimeType.startsWith('image/')) {
-    return { supported: true, type: 'image' };
+  if (mimeType.startsWith("image/")) {
+    return { supported: true, type: "image" };
   }
-  
-  // PDFs - supported by Gemini
-  if (mimeType === 'application/pdf' && provider === 'google') {
-    return { supported: true, type: 'pdf' };
+
+  if (mimeType === "application/pdf" && provider === "google") {
+    return { supported: true, type: "pdf" };
   }
-  
-  // Audio files - supported by Gemini
-  if ((mimeType === 'audio/wav' || mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') && provider === 'google') {
-    return { supported: true, type: 'audio' };
+
+  if (
+    (mimeType === "application/msword" ||
+      mimeType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document") &&
+    provider === "google"
+  ) {
+    return { supported: true, type: "document" };
   }
-  
-  // Text files - we'll extract and add as text
-  if (mimeType === 'text/plain' || mimeType.startsWith('text/')) {
-    return { supported: true, type: 'text' };
+
+  if (
+    (mimeType === "audio/wav" ||
+      mimeType === "audio/mp3" ||
+      mimeType === "audio/mpeg") &&
+    provider === "google"
+  ) {
+    return { supported: true, type: "audio" };
   }
-  
-  return { supported: false, type: 'unsupported' };
+
+  if (mimeType === "text/plain" || mimeType.startsWith("text/")) {
+    return { supported: true, type: "text" };
+  }
+
+  return { supported: false, type: "unsupported" };
+}
+
+function extractUrls(text: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.match(urlRegex) || [];
+}
+
+function isImageGenerationRequest(text: string): boolean {
+  const keywords = [
+    "create image",
+    "generate image",
+    "draw",
+    "create picture",
+    "generate picture",
+    "make image",
+    "create photo",
+    "generate photo",
+    "design image",
+    "illustrate",
+    "sketch",
+    "create a picture",
+    "make a picture",
+    "draw me",
+    "show me a picture",
+    "visualize",
+  ];
+  const lowerText = text.toLowerCase();
+  return keywords.some((keyword) => lowerText.includes(keyword));
 }
 
 export async function POST(req: NextRequest) {
@@ -116,15 +158,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse formData to handle file uploads
     const formData = await req.formData();
-    
+
     let conversationId = formData.get("conversationId") as string | null;
     const message = formData.get("message") as string;
     const title = formData.get("title") as string | null;
     const model = (formData.get("model") as string) || "gemini-2.5-flash";
-    
-    // Get all files from formData
+
     const files: File[] = [];
     for (const [key, value] of formData.entries()) {
       if (key.startsWith("file_") && value instanceof File) {
@@ -139,7 +179,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate model exists in our config
     const modelConfig = getModel(model);
     if (!modelConfig) {
       return NextResponse.json(
@@ -148,38 +187,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if files are provided but model doesn't support multimodal
     if (files.length > 0 && !supportsMultimodal(modelConfig.provider)) {
       return NextResponse.json(
-        { error: `The selected model (${model}) does not support image/file inputs. Please use a Gemini model or Groq vision model.` },
+        {
+          error: `The selected model (${model}) does not support image/file inputs. Please use a Gemini model or Groq vision model.`,
+        },
         { status: 400 },
       );
     }
 
-    // Check file type support
     for (const file of files) {
       const fileSupport = getFileSupport(file.type, modelConfig.provider);
       if (!fileSupport.supported) {
         return NextResponse.json(
-          { error: `File type ${file.type} is not supported. Supported: images (all), PDFs/audio (Gemini only), text files (all).` },
+          {
+            error: `File type ${file.type} is not supported. Supported: images (all), PDFs/docs/audio (Gemini only), text files (all).`,
+          },
           { status: 400 },
         );
       }
     }
 
-    // Check and reset daily tokens if needed
     const userData = await checkAndResetDailyTokens(session.user.id);
     if (!userData) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Check if user has exceeded limits
     const limitCheck = checkLimits(userData, modelConfig.provider);
     if (limitCheck.exceeded) {
       return NextResponse.json({ error: limitCheck.message }, { status: 429 });
     }
 
-    // If no conversationId provided, create a new conversation
+    // Conversation upsert
     if (!conversationId) {
       const [newConversation] = await db
         .insert(conversations)
@@ -191,7 +230,6 @@ export async function POST(req: NextRequest) {
 
       conversationId = newConversation.id;
     } else {
-      // Verify conversation belongs to user
       const [conversation] = await db
         .select()
         .from(conversations)
@@ -210,91 +248,118 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Process files and create content parts (AI SDK official format)
+    const urls = extractUrls(message);
+    const isImageRequest = isImageGenerationRequest(message);
+
     const fileMetadata: Array<{
       name: string;
       type: string;
       size: number;
     }> = [];
 
-    const contentParts: Array<
-      | { type: 'text'; text: string }
-      | { type: 'image'; image: Buffer | Uint8Array | string }
-      | { type: 'file'; data: Buffer | Uint8Array; mimeType: string; filename?: string }
-    > = [];
-    
-    // Add text message
-    contentParts.push({
-      type: "text",
-      text: message,
-    });
+    // Build content for the current message
+    // Only the CURRENT message can be multimodal. History is string-only.
+    let userMessageContent:
+      | string
+      | Array<
+          | { type: "text"; text: string }
+          | { type: "image"; image: string | ArrayBuffer | Uint8Array | Buffer }
+          | {
+              type: "file";
+              mediaType: string;
+              data: string | ArrayBuffer | Uint8Array | Buffer;
+              filename?: string;
+            }
+        >;
 
-    // Process each file using AI SDK official format
-    for (const file of files) {
-      const mimeType = file.type;
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const fileSupport = getFileSupport(mimeType, modelConfig.provider);
-      
-      fileMetadata.push({
-        name: file.name,
-        type: mimeType,
-        size: file.size,
+    if (files.length > 0) {
+      const parts: any[] = [];
+
+      // Main text
+      parts.push({
+        type: "text",
+        text: message,
       });
 
-      if (fileSupport.type === 'image') {
-        // Image part - AI SDK official format (Buffer)
-        contentParts.push({
-          type: "image",
-          image: buffer, // Use Buffer directly (AI SDK supports this)
+      // Attach every file in structured multimodal format
+      for (const file of files) {
+        const mimeType = file.type;
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const fileSupport = getFileSupport(mimeType, modelConfig.provider);
+
+        fileMetadata.push({
+          name: file.name,
+          type: mimeType,
+          size: file.size,
         });
-      } else if (fileSupport.type === 'pdf' || fileSupport.type === 'audio') {
-        // File part - AI SDK official format for PDFs and audio
-        contentParts.push({
-          type: "file",
-          data: buffer, // Use Buffer directly
-          mimeType: mimeType,
-          filename: file.name, // Optional but helpful
-        });
-      } else if (fileSupport.type === 'text') {
-        // Text file - extract content and add as text part
-        const textContent = buffer.toString('utf-8');
-        contentParts.push({
-          type: "text",
-          text: `\n\n[Content from file: ${file.name}]\n${textContent}\n[End of file content]\n`,
-        });
+
+        if (fileSupport.type === "image") {
+          // Image part
+          parts.push({
+            type: "image",
+            image: buffer, // Buffer is allowed as binary data
+          });
+        } else if (
+          fileSupport.type === "pdf" ||
+          fileSupport.type === "document" ||
+          fileSupport.type === "audio"
+        ) {
+          // File part (PDF, DOC, AUDIO)
+          parts.push({
+            type: "file",
+            mediaType: mimeType, // ✅ correct property name
+            data: buffer,
+            filename: file.name, // optional but useful
+          });
+        } else if (fileSupport.type === "text") {
+          // Text files get inlined as extra text content
+          const textContent = buffer.toString("utf-8");
+          parts.push({
+            type: "text",
+            text: ` \n\n[Content from file: ${file.name}]\n${textContent}\n[End of file content]\n`,
+          });
+        }
       }
+
+      userMessageContent = parts;
+    } else {
+      // Plain text message
+      userMessageContent = message;
     }
 
-    // Save user message with file metadata
-    const userMessageContent = files.length > 0 
-      ? JSON.stringify({
-          text: message,
-          files: fileMetadata,
-        })
-      : message;
+    // Save user message to DB (store metadata if files)
+    const dbMessageContent =
+      files.length > 0
+        ? JSON.stringify({
+            text: message,
+            files: fileMetadata,
+          })
+        : message;
 
     await db.insert(messages).values({
       conversationId,
       role: "user",
-      content: userMessageContent,
+      content: dbMessageContent,
       model: null,
       tokensUsed: null,
     });
 
-    // Load history
     const history = await db
       .select()
       .from(messages)
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt);
 
-    // Generate title for first message
     const messageCount = history.length;
     const isFirstMessage = messageCount === 1;
 
-    // Helper to get the AI model instance from config
     function getAIModel(config: NonNullable<typeof modelConfig>) {
+      if (isImageRequest && config.provider === "google") {
+        // Image generation model
+        return google("imagen-3.0-generate-001");
+      }
+
       switch (config.provider) {
         case "google":
           return gemini(config.modelId);
@@ -307,17 +372,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Auto-title only on first user message
     if (isFirstMessage) {
-      // Generate title using LLM (use a fast model for title generation)
       try {
-        const titleModelConfig = MODELS["gemini-2.0-flash"] || modelConfig;
-        const titleModel = getAIModel(titleModelConfig!);
+        const titleModel = gemini("gemini-2.0-flash-exp");
 
         const titleGen = await streamText({
           model: titleModel,
           messages: [
             {
-              role: "user",
+              role: "user" as const,
               content: `Generate a very short 3-word title for this message. Output ONLY the title, nothing else: "${message}"`,
             },
           ],
@@ -328,15 +392,12 @@ export async function POST(req: NextRequest) {
           generatedTitle += chunk;
         }
 
-        // Clean up the title and limit length
         generatedTitle = generatedTitle.replace(/['"]/g, "").trim();
 
-        // Truncate title if it's too long (max 30 characters)
         if (generatedTitle.length > 30) {
           generatedTitle = generatedTitle.substring(0, 27) + "...";
         }
 
-        // Update conversation with generated title
         if (generatedTitle) {
           await db
             .update(conversations)
@@ -345,63 +406,97 @@ export async function POST(req: NextRequest) {
         }
       } catch (titleError) {
         console.error("Error generating title:", titleError);
-        // Title generation failed, but continue with the chat
       }
     }
 
-    // Format history - handle both text and multimodal messages
-    const formatted = history.map((m) => {
-      try {
-        // Try to parse as JSON (multimodal message)
-        const parsed = JSON.parse(m.content || "{}");
-        if (parsed.text && parsed.files) {
-          // This is a multimodal message, but we can only include text in history
-          // The current message will have the images
-          return {
-            role: m.role as "user" | "assistant",
-            content: parsed.text,
-          };
+    // Format history messages: ALWAYS string content for SDK
+    const formattedHistory = history.slice(0, -1).map((m) => {
+      let textContent: unknown = m.content ?? "";
+
+      // Try to unwrap JSON { text, files } structure
+      if (typeof textContent === "string") {
+        try {
+          const parsed = JSON.parse(textContent);
+          if (parsed && typeof parsed.text === "string") {
+            textContent = parsed.text;
+          }
+        } catch {
+          // Not JSON, keep as is
         }
-      } catch {
-        // Not JSON, treat as plain text
       }
-      
+
+      if (typeof textContent !== "string") {
+        textContent = JSON.stringify(textContent);
+      }
+
       return {
         role: m.role as "user" | "assistant",
-        content: m.content || "",
+        content: textContent as string,
       };
     });
 
-    // Remove the last user message from formatted (we'll replace it with multimodal version)
-    formatted.pop();
+    console.log("=== Debug Info ===");
+    console.log("Files count:", files.length);
+    console.log("History messages:", formattedHistory.length);
+    console.log("Is image request:", isImageRequest);
+    console.log("Current message type:", typeof userMessageContent);
+    console.log(
+      "Current message is array:",
+      Array.isArray(userMessageContent),
+    );
 
-    // Select AI model based on user choice
+    for (let i = 0; i < formattedHistory.length; i++) {
+      const msg = formattedHistory[i];
+      if (typeof msg.content !== "string") {
+        console.error(
+          `ERROR: History message ${i} has non-string content:`,
+          typeof msg.content,
+        );
+      }
+    }
+
     const selectedModel = getAIModel(modelConfig);
 
-    // Prepare the final messages array with proper AI SDK format
-    const finalMessages = [
-      ...formatted,
+    // Final messages passed to AI SDK
+    const finalMessages: any[] = [
+      ...formattedHistory,
       {
         role: "user" as const,
-        content: files.length > 0 ? contentParts : message,
+        content: userMessageContent, // string OR array of valid content parts
       },
     ];
 
-    console.log('Sending to AI with content parts:', contentParts.length, 'parts');
+    const tools: Record<string, any> = {};
 
-    // Prepare tools for Google models
-    const tools: any = modelConfig.provider === "google" 
-      ? {
-          google_search: google.tools.googleSearch({}),
-        }
-      : undefined;
+    if (modelConfig.provider === "google" && !isImageRequest) {
+      tools.google_search = google.tools.googleSearch({});
 
-    // Call AI with multimodal support using official AI SDK format
-    const response = await streamText({
+      if (urls.length > 0) {
+        tools.url_context = google.tools.urlContext({});
+      }
+    }
+
+    const streamConfig: any = {
       model: selectedModel,
       messages: finalMessages,
-      tools,
+    };
+
+    if (!isImageRequest && Object.keys(tools).length > 0) {
+      streamConfig.tools = tools;
+    }
+
+    if (isImageRequest && modelConfig.provider === "google") {
+      streamConfig.experimental_generateImage = true;
+    }
+
+    console.log("Calling AI with config:", {
+      model: model,
+      messageCount: finalMessages.length,
+      hasTools: Object.keys(tools).length > 0,
+      isImageGen: isImageRequest,
     });
+
+    const response = await streamText(streamConfig);
 
     let full = "";
     const finalConversationId = conversationId;
@@ -410,20 +505,33 @@ export async function POST(req: NextRequest) {
     const supportsTokenUsage = modelConfig.supportsTokenUsage;
     const userId = session.user.id;
 
-    // Collect the full response and track tokens
+    // Background task to collect full text, handle attachments & save to DB
     (async () => {
       try {
         for await (const chunk of response.textStream) {
           full += chunk;
         }
 
-        console.log('Full response received, length:', full.length);
+        console.log("Full response received, length:", full.length);
 
-        // Get token usage from the response (if supported)
+        const responseData = await response.response;
+
+        if (responseData && "experimental_attachments" in responseData) {
+          const attachments = (responseData as any).experimental_attachments || [];
+
+          console.log("Attachments found:", attachments.length);
+
+          for (const attachment of attachments) {
+            if (attachment.contentType?.startsWith("image/")) {
+              const base64Data = attachment.content;
+              full +=` \n\n![Generated Image](data:${attachment.contentType};base64,${base64Data})\n`;
+            }
+          }
+        }
+
         const usage = await response.usage;
         const totalTokens = supportsTokenUsage ? usage?.totalTokens || 0 : 0;
 
-        // Save assistant message with token info
         await db.insert(messages).values({
           conversationId: finalConversationId,
           role: "assistant",
@@ -432,7 +540,6 @@ export async function POST(req: NextRequest) {
           tokensUsed: totalTokens,
         });
 
-        // Update user's token usage (Google/Groq models that support token tracking)
         if (finalProvider === "google" && totalTokens > 0) {
           await db
             .update(user)
@@ -443,7 +550,7 @@ export async function POST(req: NextRequest) {
             .where(eq(user.id, userId));
         }
       } catch (error) {
-        console.error('Error in response processing:', error);
+        console.error("Error in response processing:", error);
       }
     })();
 
