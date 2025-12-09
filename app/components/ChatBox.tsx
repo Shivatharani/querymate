@@ -40,9 +40,8 @@ import {
   Suggestion,
 } from "@/components/ai-elements/suggestion";
 
-// Import the new loader and code block components
 import { Loader } from "@/components/ai-elements/loader";
-import { CodeBlock, CodeBlockCopyButton } from "@/components/ai-elements/code-block";
+import { CodeBlock } from "@/components/ai-elements/code-block";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -54,6 +53,14 @@ const PROMPT_MODEL_OPTIONS = Object.keys(
   MODEL_GROUPS as Record<Provider, (typeof MODEL_GROUPS)[Provider]>,
 ).flatMap((provider) => {
   const group = MODEL_GROUPS[provider as Provider];
+  if (provider === "google") {
+    return group.models
+      .filter(id => id === "gemini-2.5-flash" || id === "gemini-2.5-flash-lite")
+      .map((id) => ({
+        id,
+        name: MODELS[id]?.name ?? id,
+      }));
+  }
   return group.models.map((id) => ({
     id,
     name: MODELS[id]?.name ?? id,
@@ -567,7 +574,7 @@ export default function ChatBox({
                           onClick={handleSuggestionClick}
                           variant="outline"
                           size="sm"
-                          className="text-gray-700 dark:text-gray-200" // Ensures visibility in dark mode
+                          className="bg-white text-gray-800 dark:bg-white dark:text-gray-900 shadow-sm"
                         />
                       ))}
                     </Suggestions>
@@ -612,11 +619,36 @@ export default function ChatBox({
                                   code({ inline, className, children, ...props }) {
                                     const match = /language-(\w+)/.exec(className || "");
                                     const codeText = String(children ?? "").replace(/\n$/, "");
+                                    const [copied, setCopied] = useState(false);
+
+                                    const handleCopy = () => {
+                                      navigator.clipboard.writeText(codeText).then(
+                                        () => {
+                                          setCopied(true);
+                                          setTimeout(() => setCopied(false), 2000);
+                                        },
+                                        (err) => {
+                                          console.error('Failed to copy code: ', err);
+                                        }
+                                      );
+                                    };
+
                                     return (
                                       <div className="my-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-950 text-gray-100 dark:border-gray-700 dark:bg-[#0b0b10]">
-                                        <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#11111a]">
+                                        <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#1111a]">
                                           <span className="font-mono">{match ? match[1] : "code"}</span>
-                                          <CodeBlockCopyButton />
+                                          <button
+                                            type="button"
+                                            onClick={handleCopy}
+                                            className="flex items-center justify-center p-1 text-xs text-gray-400 hover:text-gray-200"
+                                            aria-label={copied ? "Copied!" : "Copy code"}
+                                          >
+                                            {copied ? (
+                                              <CheckIcon className="h-4 w-4" />
+                                            ) : (
+                                              <CopyIcon className="h-4 w-4" />
+                                            )}
+                                          </button>
                                         </div>
                                         <CodeBlock
                                           code={codeText}
@@ -654,7 +686,6 @@ export default function ChatBox({
 
       <div className="w-full border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-[#050509]">
         <div className="mx-auto flex max-w-3xl flex-col gap-3 px-3 pb-6 pt-4 sm:px-4 md:px-0">
-          {/* File previews */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {files.map((file, index) => (
