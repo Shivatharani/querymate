@@ -375,7 +375,7 @@ export async function POST(req: NextRequest) {
     // Auto-title only on first user message
     if (isFirstMessage) {
       try {
-        const titleModel = gemini("gemini-2.0-flash-exp");
+        const titleModel = getAIModel(modelConfig);
 
         const titleGen = await streamText({
           model: titleModel,

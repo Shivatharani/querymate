@@ -9,9 +9,9 @@ import {
   MicOffIcon,
   Globe2,
   CornerDownLeftIcon,
-  Copy as CopyIcon,
-  Check as CheckIcon,
-  X as XIcon,
+  CopyIcon,
+  CheckIcon,
+  XIcon,
   FileIcon,
   ImageIcon,
 } from "lucide-react";
@@ -40,8 +40,12 @@ import {
   Suggestion,
 } from "@/components/ai-elements/suggestion";
 
-type ChatMessage = { 
-  role: "user" | "assistant"; 
+// Import the new loader and code block components
+import { Loader } from "@/components/ai-elements/loader";
+import { CodeBlock, CodeBlockCopyButton } from "@/components/ai-elements/code-block";
+
+type ChatMessage = {
+  role: "user" | "assistant";
   content: string;
   files?: Array<{ name: string; type: string; size: number }>;
 };
@@ -63,107 +67,44 @@ const DEFAULT_MODEL_ID =
 
 const THEME_STORAGE_KEY = "theme";
 
-function CodeBlock({
-  inline,
-  className,
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLElement> & { inline?: boolean }) {
-  const [copied, setCopied] = useState(false);
-
-  const match = /language-(\w+)/.exec(className || "");
-  const codeText = String(children ?? "").replace(/\n$/, "");
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(codeText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // ignore errors silently
-    }
-  };
-
-  if (inline) {
-    return (
-      <code
-        className="rounded bg-gray-100 px-1 py-0.5 text-xs font-mono text-gray-800 dark:bg-gray-800 dark:text-gray-100"
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  }
-
-  return (
-    <div className="my-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-950 text-gray-100 dark:border-gray-700 dark:bg-[#0b0b10]">
-      <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#11111a]">
-        <span className="font-mono">
-          {match ? match[1] : "code"}
-        </span>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] hover:bg-gray-800"
-        >
-          {copied ? (
-            <>
-              <CheckIcon className="h-3 w-3" />
-              Copied
-            </>
-          ) : (
-            <>
-              <CopyIcon className="h-3 w-3" />
-              Copy
-            </>
-          )}
-        </button>
-      </div>
-      <pre className="max-h-[480px] overflow-auto px-3 py-2 text-xs leading-relaxed">
-        <code className={className} {...props}>
-          {codeText}
-        </code>
-      </pre>
-    </div>
-  );
-}
-
 function TypingIndicator({ isSearching }: { isSearching: boolean }) {
+  const [loadingText, setLoadingText] = useState("Thinking...");
+
+  useEffect(() => {
+    const texts = isSearching
+      ? ["Searching..."]
+      : ["Thinking...", "Analyzing...", "Processing..."];
+    let index = 0;
+    const interval = setInterval(() => {
+      setLoadingText(texts[index]);
+      index = (index + 1) % texts.length;
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [isSearching]);
+
   return (
     <Message from="assistant">
       <MessageContent>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <div className="flex gap-1">
-            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-500" />
-            <span
-              className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-              style={{ animationDelay: "120ms" }}
-            />
-            <span
-              className="h-2 w-2 animate-bounce rounded-full bg-gray-300"
-              style={{ animationDelay: "240ms" }}
-            />
-          </div>
-          <span>{isSearching ? "Searching…" : "Thinking…"}</span>
+        <div className="flex items-center gap-2">
+          <Loader />
+          <span className="text-sm text-gray-500 dark:text-gray-400">{loadingText}</span>
         </div>
       </MessageContent>
     </Message>
   );
 }
 
-// Helper to format file size
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-// File preview component
-function FilePreview({ 
-  file, 
-  onRemove 
-}: { 
-  file: File; 
+function FilePreview({
+  file,
+  onRemove
+}: {
+  file: File;
   onRemove: () => void;
 }) {
   const isImage = file.type.startsWith('image/');
@@ -182,9 +123,9 @@ function FilePreview({
   return (
     <div className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
       {isImage && preview ? (
-        <img 
-          src={preview} 
-          alt={file.name} 
+        <img
+          src={preview}
+          alt={file.name}
           className="h-12 w-12 rounded object-cover"
         />
       ) : (
@@ -229,13 +170,13 @@ export default function ChatBox({
   const [searchEnabled, setSearchEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
 
   const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  const scrollRootRef = useRef<HTMLDivElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasHistory = conversationId !== null && messages.length > 0;
 
@@ -248,26 +189,19 @@ export default function ChatBox({
 
   const startListening = () => {
     if (typeof window === "undefined") return;
-    
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Speech recognition is not supported in your browser. Please use Chrome.");
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
+    recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event: any) => {
       let interimTranscript = "";
       let finalTranscript = "";
-
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
@@ -276,12 +210,10 @@ export default function ChatBox({
           interimTranscript += transcript;
         }
       }
-
       if (finalTranscript) {
         setInput((prev) => prev + finalTranscript);
       }
     };
-
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
       setIsListening(false);
@@ -289,11 +221,7 @@ export default function ChatBox({
         alert("Microphone access denied. Please allow microphone access in your browser settings.");
       }
     };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
+    recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
     recognition.start();
   };
@@ -385,8 +313,7 @@ export default function ChatBox({
       });
       const data = await res.json();
       if (!isMounted) return;
-      
-      // Parse messages and extract file metadata
+
       const parsedMessages = data.messages?.map((msg: any) => {
         try {
           const parsed = JSON.parse(msg.content);
@@ -405,7 +332,7 @@ export default function ChatBox({
           content: msg.content,
         };
       }) || [];
-      
+
       setMessages(
         parsedMessages.length
           ? parsedMessages
@@ -428,16 +355,53 @@ export default function ChatBox({
     }
   }, [messages, loading]);
 
+  const isValidFile = (file: File): boolean => {
+    return file.type.startsWith('image/') || file.type === 'application/pdf';
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      const validFiles: File[] = [];
+      let error = false;
+
+      newFiles.forEach(file => {
+        if (isValidFile(file)) {
+          validFiles.push(file);
+        } else {
+          error = true;
+        }
+      });
+
+      if (error) {
+        setErrorMessage("File format is not supported. Only images and PDFs are allowed.");
+        setTimeout(() => setErrorMessage(null), 3000);
+      }
+
+      setFiles((prev) => [...prev, ...validFiles]);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleFileUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   async function sendChatMessage(text: string) {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
 
-    // Add user message with file metadata
     const userMessage: ChatMessage = {
       role: "user",
       content: trimmed,
     };
-    
+
     if (files.length > 0) {
       userMessage.files = files.map(f => ({
         name: f.name,
@@ -454,8 +418,7 @@ export default function ChatBox({
     formData.append("message", trimmed);
     formData.append("model", selectedModel);
     if (conversationId) formData.append("conversationId", conversationId);
-    
-    // Append files with proper naming
+
     files.forEach((file, index) => {
       formData.append(`file_${index}`, file);
     });
@@ -518,14 +481,14 @@ export default function ChatBox({
         ...prev,
         {
           role: "assistant",
-          content: error instanceof Error 
-            ? `Error: ${error.message}` 
+          content: error instanceof Error
+            ? `Error: ${error.message}`
             : "Unable to connect. Please try again.",
         },
       ]);
     }
     setLoading(false);
-    setFiles([]);
+    setFiles([]); // Clear files after sending
   }
 
   const handlePromptSubmit = (event?: FormEvent<HTMLFormElement>) => {
@@ -555,25 +518,6 @@ export default function ChatBox({
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles((prev) => [...prev, ...newFiles]);
-    }
-    // Reset input so same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleFileUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSearchClick = () => {
@@ -614,7 +558,6 @@ export default function ChatBox({
                   <p className="mb-6 text-sm text-gray-500">
                     Choose a model and ask anything to get started.
                   </p>
-
                   <div className="w-full max-w-2xl">
                     <Suggestions className="flex flex-wrap justify-center gap-2">
                       {suggestions.map((s) => (
@@ -624,6 +567,7 @@ export default function ChatBox({
                           onClick={handleSuggestionClick}
                           variant="outline"
                           size="sm"
+                          className="text-gray-700 dark:text-gray-200" // Ensures visibility in dark mode
                         />
                       ))}
                     </Suggestions>
@@ -665,7 +609,24 @@ export default function ChatBox({
                             <div className="prose max-w-none text-gray-900 dark:prose-invert dark:text-gray-50">
                               <ReactMarkdown
                                 components={{
-                                  code: CodeBlock,
+                                  code({ inline, className, children, ...props }) {
+                                    const match = /language-(\w+)/.exec(className || "");
+                                    const codeText = String(children ?? "").replace(/\n$/, "");
+                                    return (
+                                      <div className="my-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-950 text-gray-100 dark:border-gray-700 dark:bg-[#0b0b10]">
+                                        <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#11111a]">
+                                          <span className="font-mono">{match ? match[1] : "code"}</span>
+                                          <CodeBlockCopyButton />
+                                        </div>
+                                        <CodeBlock
+                                          code={codeText}
+                                          language={match ? match[1] : "plaintext"}
+                                          showLineNumbers={false}
+                                          className="max-h-[480px] overflow-auto px-3 py-2 text-xs leading-relaxed"
+                                        />
+                                      </div>
+                                    );
+                                  },
                                 }}
                               >
                                 {m.content}
@@ -705,6 +666,9 @@ export default function ChatBox({
               ))}
             </div>
           )}
+          {errorMessage && (
+            <div className="text-xs text-red-500">{errorMessage}</div>
+          )}
 
           <div className="flex w-full justify-center">
             <form
@@ -728,7 +692,7 @@ export default function ChatBox({
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept="image/*,.pdf,.doc,.docx,.txt,.mp3,.wav"
+                accept="image/*,.pdf"
               />
 
               <div className="mt-1 flex items-center justify-between px-4 pb-3 pt-2">
@@ -750,8 +714,8 @@ export default function ChatBox({
                     onClick={toggleVoiceInput}
                     disabled={!speechSupported}
                     className={`h-8 w-8 rounded-full transition-colors ${
-                      isListening 
-                        ? "bg-red-500 text-white hover:bg-red-600 animate-pulse" 
+                      isListening
+                        ? "bg-red-500 text-white hover:bg-red-600 animate-pulse"
                         : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
                     } ${!speechSupported ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
