@@ -9,11 +9,9 @@ import {
   MicOffIcon,
   Globe2,
   CornerDownLeftIcon,
-  CopyIcon,
-  CheckIcon,
-  XIcon,
   FileIcon,
   ImageIcon,
+  XIcon,
 } from "lucide-react";
 
 import { mutateConversations, mutateUsage } from "./ChatSidebar";
@@ -40,10 +38,12 @@ import {
   Suggestion,
 } from "@/components/ai-elements/suggestion";
 
-// Import the new loader and code block components
 import { Loader } from "@/components/ai-elements/loader";
-import { CodeBlock, CodeBlockCopyButton } from "@/components/ai-elements/code-block";
-import { BundledLanguage } from "shiki"; // Import the correct type
+import {
+  CodeBlock,
+  CodeBlockCopyButton,
+} from "@/components/ai-elements/code-block";
+import { BundledLanguage } from "shiki";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -56,9 +56,10 @@ const PROMPT_MODEL_OPTIONS = Object.keys(
 ).flatMap((provider) => {
   const group = MODEL_GROUPS[provider as Provider];
   if (provider === "google") {
-    // Only include gemini-2.5-flash and gemini-2.5-flash-lite for Google
     return group.models
-      .filter(id => id === "gemini-2.5-flash" || id === "gemini-2.5-flash-lite")
+      .filter(
+        (id) => id === "gemini-2.5-flash" || id === "gemini-2.5-flash-lite",
+      )
       .map((id) => ({
         id,
         name: MODELS[id]?.name ?? id,
@@ -97,7 +98,9 @@ function TypingIndicator({ isSearching }: { isSearching: boolean }) {
       <MessageContent>
         <div className="flex items-center gap-2">
           <Loader />
-          <span className="text-sm text-gray-500 dark:text-gray-400">{loadingText}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {loadingText}
+          </span>
         </div>
       </MessageContent>
     </Message>
@@ -105,19 +108,19 @@ function TypingIndicator({ isSearching }: { isSearching: boolean }) {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 function FilePreview({
   file,
-  onRemove
+  onRemove,
 }: {
   file: File;
   onRemove: () => void;
 }) {
-  const isImage = file.type.startsWith('image/');
+  const isImage = file.type.startsWith("image/");
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
@@ -162,6 +165,21 @@ function FilePreview({
   );
 }
 
+const getBundledLanguage = (lang: string): BundledLanguage => {
+  const allowed: BundledLanguage[] = [
+    "javascript",
+    "typescript",
+    "python",
+    "html",
+    "css",
+    "json",
+    "markdown",
+  ];
+  return allowed.includes(lang as BundledLanguage)
+    ? (lang as BundledLanguage)
+    : ("text" as any);
+};
+
 export default function ChatBox({
   conversationId,
   setConversationId,
@@ -192,16 +210,22 @@ export default function ChatBox({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
       setSpeechSupported(!!SpeechRecognition);
     }
   }, []);
 
   const startListening = () => {
     if (typeof window === "undefined") return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in your browser. Please use Chrome.");
+      alert(
+        "Speech recognition is not supported in your browser. Please use Chrome.",
+      );
       return;
     }
     const recognition = new SpeechRecognition();
@@ -228,7 +252,9 @@ export default function ChatBox({
       console.error("Speech recognition error:", event.error);
       setIsListening(false);
       if (event.error === "not-allowed") {
-        alert("Microphone access denied. Please allow microphone access in your browser settings.");
+        alert(
+          "Microphone access denied. Please allow microphone access in your browser settings.",
+        );
       }
     };
     recognition.onend = () => setIsListening(false);
@@ -288,8 +314,7 @@ export default function ChatBox({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    const initial: "light" | "dark" =
-      stored === "dark" ? "dark" : "light";
+    const initial: "light" | "dark" = stored === "dark" ? "dark" : "light";
     setTheme(initial);
     document.documentElement.setAttribute("data-theme", initial);
   }, []);
@@ -324,24 +349,25 @@ export default function ChatBox({
       const data = await res.json();
       if (!isMounted) return;
 
-      const parsedMessages = data.messages?.map((msg: any) => {
-        try {
-          const parsed = JSON.parse(msg.content);
-          if (parsed.text && parsed.files) {
-            return {
-              role: msg.role,
-              content: parsed.text,
-              files: parsed.files,
-            };
+      const parsedMessages =
+        data.messages?.map((msg: any) => {
+          try {
+            const parsed = JSON.parse(msg.content);
+            if (parsed.text && parsed.files) {
+              return {
+                role: msg.role,
+                content: parsed.text,
+                files: parsed.files,
+              };
+            }
+          } catch {
+            // Not JSON, regular message
           }
-        } catch {
-          // Not JSON, regular message
-        }
-        return {
-          role: msg.role,
-          content: msg.content,
-        };
-      }) || [];
+          return {
+            role: msg.role,
+            content: msg.content,
+          };
+        }) || [];
 
       setMessages(
         parsedMessages.length
@@ -366,7 +392,7 @@ export default function ChatBox({
   }, [messages, loading]);
 
   const isValidFile = (file: File): boolean => {
-    return file.type.startsWith('image/') || file.type === 'application/pdf';
+    return file.type.startsWith("image/") || file.type === "application/pdf";
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,7 +401,7 @@ export default function ChatBox({
       const validFiles: File[] = [];
       let error = false;
 
-      newFiles.forEach(file => {
+      newFiles.forEach((file) => {
         if (isValidFile(file)) {
           validFiles.push(file);
         } else {
@@ -384,14 +410,16 @@ export default function ChatBox({
       });
 
       if (error) {
-        setErrorMessage("File format is not supported. Only images and PDFs are allowed.");
+        setErrorMessage(
+          "File format is not supported. Only images and PDFs are allowed.",
+        );
         setTimeout(() => setErrorMessage(null), 3000);
       }
 
       setFiles((prev) => [...prev, ...validFiles]);
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -413,7 +441,7 @@ export default function ChatBox({
     };
 
     if (files.length > 0) {
-      userMessage.files = files.map(f => ({
+      userMessage.files = files.map((f) => ({
         name: f.name,
         type: f.type,
         size: f.size,
@@ -442,7 +470,7 @@ export default function ChatBox({
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to send message');
+        throw new Error(errorData.error || "Failed to send message");
       }
 
       if (!conversationId) {
@@ -486,19 +514,20 @@ export default function ChatBox({
         mutateConversations();
       }
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error("Chat error:", error);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: error instanceof Error
-            ? `Error: ${error.message}`
-            : "Unable to connect. Please try again.",
+          content:
+            error instanceof Error
+              ? `Error: ${error.message}`
+              : "Unable to connect. Please try again.",
         },
       ]);
     }
     setLoading(false);
-    setFiles([]); // Clear files after sending
+    setFiles([]);
   }
 
   const handlePromptSubmit = (event?: FormEvent<HTMLFormElement>) => {
@@ -540,14 +569,6 @@ export default function ChatBox({
 
   const isSearching = loading && searchEnabled;
 
-  // Helper to safely map language to BundledLanguage from shiki
-  const getBundledLanguage = (lang: string): BundledLanguage => {
-    const allowed: BundledLanguage[] = [
-      'javascript', 'typescript', 'python', 'html', 'css', 'json', 'markdown'
-    ];
-    return allowed.includes(lang as BundledLanguage) ? (lang as BundledLanguage) : ("text" as any);
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-white pb-3 dark:bg-[#050509]">
       <div className="flex items-center justify-end px-4 pt-3">
@@ -567,7 +588,7 @@ export default function ChatBox({
             ref={scrollRootRef}
             className="h-full w-full px-3 py-4 sm:px-4 md:px-6 md:py-6"
           >
-            <div className="mx-auto flex h-full max-w-3xl flex-col gap-6">
+            <div className="mx-auto flex h-full max-w-full flex-col gap-6 sm:max-w-3xl">
               {showCenterPrompt ? (
                 <div className="flex flex-1 flex-col items-center justify-center text-center">
                   <h1 className="mb-4 text-2xl font-semibold md:text-3xl">
@@ -607,7 +628,7 @@ export default function ChatBox({
                                       key={idx}
                                       className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-gray-700 dark:bg-gray-800"
                                     >
-                                      {file.type.startsWith('image/') ? (
+                                      {file.type.startsWith("image/") ? (
                                         <ImageIcon className="h-4 w-4 text-gray-500" />
                                       ) : (
                                         <FileIcon className="h-4 w-4 text-gray-500" />
@@ -628,15 +649,25 @@ export default function ChatBox({
                               <ReactMarkdown
                                 components={{
                                   code({ className, children, ...props }) {
-                                    const match = /language-(\w+)/.exec(className || "");
-                                    const codeText = String(children ?? "").replace(/\n$/, "");
+                                    const match =
+                                      /language-(\w+)/.exec(className || "");
+                                    const codeText = String(children ?? "").replace(
+                                      /\n$/,
+                                      "",
+                                    );
                                     const lang = match ? match[1] : "text";
                                     const bundledLang = getBundledLanguage(lang);
+
                                     return (
                                       <div className="my-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-950 text-gray-100 dark:border-gray-700 dark:bg-[#0b0b10]">
-                                        <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#1111a]">
+                                        <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#11111a]">
                                           <span className="font-mono">{lang}</span>
-                                          <CodeBlockCopyButton />
+                                          <CodeBlockCopyButton
+                                            onCopy={async () => {
+                                              if (!navigator.clipboard) return;
+                                              await navigator.clipboard.writeText(codeText);
+                                            }}
+                                          />
                                         </div>
                                         <CodeBlock
                                           code={codeText}
@@ -673,8 +704,7 @@ export default function ChatBox({
       </div>
 
       <div className="w-full border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-[#050509]">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 px-3 pb-6 pt-4 sm:px-4 md:px-0">
-          {/* File previews */}
+        <div className="mx-auto flex max-w-full flex-col gap-3 px-3 pb-6 pt-4 sm:px-4 md:max-w-3xl md:px-0">
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {files.map((file, index) => (
@@ -729,7 +759,9 @@ export default function ChatBox({
 
                   <PromptInputButton
                     size="icon-sm"
-                    aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                    aria-label={
+                      isListening ? "Stop voice input" : "Start voice input"
+                    }
                     type="button"
                     onClick={toggleVoiceInput}
                     disabled={!speechSupported}
@@ -737,7 +769,9 @@ export default function ChatBox({
                       isListening
                         ? "bg-red-500 text-white hover:bg-red-600 animate-pulse"
                         : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
-                    } ${!speechSupported ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } ${
+                      !speechSupported ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
                     {isListening ? (
                       <MicOffIcon className="h-4 w-4 text-white" />
@@ -759,7 +793,9 @@ export default function ChatBox({
                   >
                     <Globe2
                       className={`mr-1 h-3 w-3 ${
-                        searchEnabled ? "text-white" : "text-gray-700 dark:text-gray-200"
+                        searchEnabled
+                          ? "text-white"
+                          : "text-gray-700 dark:text-gray-200"
                       }`}
                     />
                     <span>{searchEnabled ? "Search On" : "Search"}</span>
