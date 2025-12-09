@@ -40,8 +40,10 @@ import {
   Suggestion,
 } from "@/components/ai-elements/suggestion";
 
+// Import the new loader and code block components
 import { Loader } from "@/components/ai-elements/loader";
-import { CodeBlock } from "@/components/ai-elements/code-block";
+import { CodeBlock, CodeBlockCopyButton } from "@/components/ai-elements/code-block";
+import { BundledLanguage } from "shiki"; // Import the correct type
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -54,6 +56,7 @@ const PROMPT_MODEL_OPTIONS = Object.keys(
 ).flatMap((provider) => {
   const group = MODEL_GROUPS[provider as Provider];
   if (provider === "google") {
+    // Only include gemini-2.5-flash and gemini-2.5-flash-lite for Google
     return group.models
       .filter(id => id === "gemini-2.5-flash" || id === "gemini-2.5-flash-lite")
       .map((id) => ({
@@ -537,6 +540,14 @@ export default function ChatBox({
 
   const isSearching = loading && searchEnabled;
 
+  // Helper to safely map language to BundledLanguage from shiki
+  const getBundledLanguage = (lang: string): BundledLanguage => {
+    const allowed: BundledLanguage[] = [
+      'javascript', 'typescript', 'python', 'html', 'css', 'json', 'markdown'
+    ];
+    return allowed.includes(lang as BundledLanguage) ? (lang as BundledLanguage) : ("text" as any);
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-white pb-3 dark:bg-[#050509]">
       <div className="flex items-center justify-end px-4 pt-3">
@@ -616,43 +627,20 @@ export default function ChatBox({
                             <div className="prose max-w-none text-gray-900 dark:prose-invert dark:text-gray-50">
                               <ReactMarkdown
                                 components={{
-                                  code({ inline, className, children, ...props }) {
+                                  code({ className, children, ...props }) {
                                     const match = /language-(\w+)/.exec(className || "");
                                     const codeText = String(children ?? "").replace(/\n$/, "");
-                                    const [copied, setCopied] = useState(false);
-
-                                    const handleCopy = () => {
-                                      navigator.clipboard.writeText(codeText).then(
-                                        () => {
-                                          setCopied(true);
-                                          setTimeout(() => setCopied(false), 2000);
-                                        },
-                                        (err) => {
-                                          console.error('Failed to copy code: ', err);
-                                        }
-                                      );
-                                    };
-
+                                    const lang = match ? match[1] : "text";
+                                    const bundledLang = getBundledLanguage(lang);
                                     return (
                                       <div className="my-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-950 text-gray-100 dark:border-gray-700 dark:bg-[#0b0b10]">
                                         <div className="flex items-center justify-between border-b border-gray-800 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 dark:border-gray-700 dark:bg-[#1111a]">
-                                          <span className="font-mono">{match ? match[1] : "code"}</span>
-                                          <button
-                                            type="button"
-                                            onClick={handleCopy}
-                                            className="flex items-center justify-center p-1 text-xs text-gray-400 hover:text-gray-200"
-                                            aria-label={copied ? "Copied!" : "Copy code"}
-                                          >
-                                            {copied ? (
-                                              <CheckIcon className="h-4 w-4" />
-                                            ) : (
-                                              <CopyIcon className="h-4 w-4" />
-                                            )}
-                                          </button>
+                                          <span className="font-mono">{lang}</span>
+                                          <CodeBlockCopyButton />
                                         </div>
                                         <CodeBlock
                                           code={codeText}
-                                          language={match ? match[1] : "plaintext"}
+                                          language={bundledLang}
                                           showLineNumbers={false}
                                           className="max-h-[480px] overflow-auto px-3 py-2 text-xs leading-relaxed"
                                         />
@@ -686,6 +674,7 @@ export default function ChatBox({
 
       <div className="w-full border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-[#050509]">
         <div className="mx-auto flex max-w-3xl flex-col gap-3 px-3 pb-6 pt-4 sm:px-4 md:px-0">
+          {/* File previews */}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {files.map((file, index) => (
