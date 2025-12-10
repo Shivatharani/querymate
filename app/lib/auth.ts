@@ -10,7 +10,7 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     "http://localhost:3000",
-    "https://query-mate-sable.vercel.app",
+    "https://querymate-two.vercel.app", 
   ],
 
   advanced: {
