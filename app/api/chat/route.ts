@@ -1,6 +1,6 @@
 import { db } from "@/lib/lib";
 import { messages, conversations, user } from "@/lib/schema";
-import { streamText } from "ai";
+import { streamText, generateText } from "ai";
 import { gemini } from "@/lib/ai-gemini";
 import { perplexity } from "@/lib/ai-perplexity";
 import { groq } from "@/lib/ai-groq";
@@ -63,13 +63,13 @@ function checkLimits(
     if (userData.tokensUsedGemini >= TOKEN_LIMITS.gemini.dailyTokens) {
       return {
         exceeded: true,
-        message: `Daily token limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyTokens.toLocaleString()} tokens). Resets at midnight.`,
+        message: Daily token limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyTokens.toLocaleString()} tokens). Resets at midnight.,
       };
     }
     if (userData.requestsUsedGemini >= TOKEN_LIMITS.gemini.dailyRequests) {
       return {
         exceeded: true,
-        message: `Daily request limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyRequests} requests). Resets at midnight.`,
+        message: Daily request limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyRequests} requests). Resets at midnight.,
       };
     }
   }
@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     if (files.length > 0 && !supportsMultimodal(modelConfig.provider)) {
       return NextResponse.json(
         {
-          error: `The selected model (${model}) does not support image/file inputs. Please use a Gemini model or Groq vision model.`,
+          error: The selected model (${model}) does not support image/file inputs. Please use a Gemini model or Groq vision model.,
         },
         { status: 400 },
       );
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
       if (!fileSupport.supported) {
         return NextResponse.json(
           {
-            error: `File type ${file.type} is not supported. Supported: images (all), PDFs/docs/audio (Gemini only), text files (all).`,
+            error: File type ${file.type} is not supported. Supported: images (all), PDFs/docs/audio (Gemini only), text files (all).,
           },
           { status: 400 },
         );
@@ -382,7 +382,7 @@ export async function POST(req: NextRequest) {
           messages: [
             {
               role: "user" as const,
-              content: `Generate a very short 3-word title for this message. Output ONLY the title, nothing else: "${message}"`,
+              content: Generate a very short 3-word title for this message. Output ONLY the title, nothing else: "${message}",
             },
           ],
         });
@@ -449,7 +449,7 @@ export async function POST(req: NextRequest) {
       const msg = formattedHistory[i];
       if (typeof msg.content !== "string") {
         console.error(
-          `ERROR: History message ${i} has non-string content:`,
+          ERROR: History message ${i} has non-string content:,
           typeof msg.content,
         );
       }
@@ -495,6 +495,51 @@ export async function POST(req: NextRequest) {
       hasTools: Object.keys(tools).length > 0,
       isImageGen: isImageRequest,
     });
+
+    // Special handling for Perplexity to get sources
+    if (modelConfig.provider === "perplexity") {
+      const { text, sources } = await generateText({
+        model: selectedModel,
+        messages: finalMessages,
+      });
+
+      let fullText = text;
+
+      // Append sources to the response
+      if (sources && sources.length > 0) {
+        fullText += "\n\n*Sources:*\n";
+        sources.forEach((source, index) => {
+          if (source.type === "source" && source.sourceType === "url") {
+            const title = source.title || source.url;
+            fullText += ${index + 1}. [${title}](${source.url})\n;
+          }
+        });
+      }
+
+      // Save to database
+      await db.insert(messages).values({
+        conversationId,
+        role: "assistant",
+        content: fullText,
+        model: model,
+        tokensUsed: null,
+      });
+
+      // Stream the complete response with sources
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(fullText));
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+        },
+      });
+    }
 
     const response = await streamText(streamConfig);
 
