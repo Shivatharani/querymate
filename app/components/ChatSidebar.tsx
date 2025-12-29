@@ -33,7 +33,12 @@ import {
   MoreVertical,
   Zap,
   Infinity,
+  BarChart3,
+  Download,
+  FileText,
 } from "lucide-react";
+
+import jsPDF from "jspdf";
 
 type Conversation = {
   id: string;
@@ -77,6 +82,7 @@ export default function ChatSidebar({
 }) {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Removed analyticsOpen state
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<{
@@ -181,7 +187,154 @@ export default function ChatSidebar({
     }
   };
 
+  const handleExportConversation = async (conversationId: string) => {
+    try {
+      const url = new URL("/api/conversations/export", window.location.origin);
+      url.searchParams.set("format", "json");
+      url.searchParams.set("conversationId", conversationId);
+
+      const response = await fetch(url.toString(), { credentials: "include" });
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `conversation-${conversationId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("Failed to export conversation");
+    }
+  };
+
   const initial = (user?.name?.[0] || "U").toUpperCase();
+
+  const handleExportPDF = async (conversationId: string, chatTitle: string) => {
+    try {
+      const url = new URL("/api/conversations/export", window.location.origin);
+      url.searchParams.set("format", "json");
+      url.searchParams.set("conversationId", conversationId);
+      const response = await fetch(url.toString(), { credentials: "include" });
+      if (!response.ok) throw new Error("Export failed");
+      const data = await response.json();
+      
+      const conversationData = Array.isArray(data) ? data[0] : data;
+      const messages = conversationData?.messages || [];
+      
+      if (messages.length === 0) {
+        alert("No messages found in this conversation");
+        return;
+      }
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxWidth = pageWidth - (margin * 2);
+      
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(chatTitle || `Conversation ${conversationId}`, margin, 20);
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, 25, pageWidth - margin, 25);
+      
+      let y = 35;
+      
+      messages.forEach((msg: { role: string; content: string }, idx: number) => {
+        const sender = msg.role === "user" ? "You" : "AI";
+        const isUser = msg.role === "user";
+        
+        if (y > pageHeight - 40) {
+          doc.addPage();
+          y = 20;
+        }
+        
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        
+        if (isUser) {
+          doc.setFillColor(59, 130, 246); 
+          doc.setTextColor(255, 255, 255);
+        } else {
+          doc.setFillColor(229, 231, 235); 
+          doc.setTextColor(0, 0, 0);
+        }
+        
+        doc.roundedRect(margin, y - 4, 20, 7, 2, 2, "F");
+        doc.text(sender, margin + 10, y + 1, { align: "center" });
+        
+        doc.setTextColor(0, 0, 0);
+        y += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const content = msg.content || "";
+        const lines = doc.splitTextToSize(content, maxWidth);
+        
+        lines.forEach((line: string, lineIdx: number) => {
+          if (y > pageHeight - 20) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(line, margin, y);
+          y += 6;
+        });
+        
+        y += 8;
+        
+        if (idx < messages.length - 1) {
+          doc.setDrawColor(240, 240, 240);
+          doc.line(margin, y - 4, pageWidth - margin, y - 4);
+        }
+      });
+      
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          `Page ${i} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: "center" }
+        );
+      }
+
+      doc.save(`${chatTitle || "conversation"}.pdf`);
+    } catch (error) {
+      console.error("PDF export error:", error);
+      alert("Failed to export PDF");
+    }
+  };
+
+  const handleExportAll = async () => {
+    try {
+      const url = new URL("/api/conversations/export", window.location.origin);
+      url.searchParams.set("format", "json");
+      const response = await fetch(url.toString(), { credentials: "include" });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `conversations-export.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      alert("Failed to export conversations");
+    }
+  };
 
   return (
     <>
@@ -402,6 +555,16 @@ export default function ChatSidebar({
                             <Edit className="w-3 h-3" />
                             <span>Edit</span>
                           </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              handleExportPDF(chat.id, chatTitle);
+                            }}
+                            className="px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200"
+                          >
+                            <FileText className="w-3 h-3" />
+                            <span>Export as PDF</span>
+                          </DropdownMenu.Item>
                           <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
                           <DropdownMenu.Item
                             onSelect={(e) => {
@@ -427,6 +590,18 @@ export default function ChatSidebar({
             </div>
           </div>
         </nav>
+
+        {/* Export and Import Buttons */}
+        <div className="px-4 pb-4">
+          <Button
+            onClick={handleExportAll}
+            variant="outline"
+            className="w-full flex items-center gap-2 justify-center h-9 rounded-md text-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            suppressHydrationWarning
+          >
+            <Download className="w-4 h-4" /> Export
+          </Button>
+        </div>
       </aside>
     </>
   );
