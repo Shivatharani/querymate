@@ -1,5 +1,5 @@
 import { db } from "@/lib/lib";
-import { messages, conversations, user } from "@/lib/schema";
+import { messages, conversations, user, tokenUsageLog, TOKEN_LIMITS } from "@/lib/schema";
 import { streamText, generateText } from "ai";
 import { gemini } from "@/lib/ai-gemini";
 import { perplexity } from "@/lib/ai-perplexity";
@@ -10,14 +10,6 @@ import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-middleware";
 import { Buffer } from "buffer";
-
-// Define TOKEN_LIMITS here to avoid import issues
-const TOKEN_LIMITS = {
-  gemini: {
-    dailyTokens: 1_000_000,
-    dailyRequests: 100,
-  },
-} as const;
 
 async function checkAndResetDailyTokens(userId: string) {
   const [userData] = await db.select().from(user).where(eq(user.id, userId));
@@ -35,50 +27,43 @@ async function checkAndResetDailyTokens(userId: string) {
     await db
       .update(user)
       .set({
-        tokensUsedGemini: 0,
-        requestsUsedGemini: 0,
+        tokensUsedToday: 0,
         tokenResetAt: now,
+        lastTokenAlert: null,
       })
       .where(eq(user.id, userId));
 
     return {
       ...userData,
-      tokensUsedGemini: 0,
-      requestsUsedGemini: 0,
+      tokensUsedToday: 0,
       tokenResetAt: now,
+      lastTokenAlert: null,
     };
   }
 
   return userData;
 }
 
-function checkLimits(
+function checkTokenLimits(
   userData: {
-    tokensUsedGemini: number;
-    requestsUsedGemini: number;
+    tokensUsedToday: number;
+    subscriptionTier: string;
   },
-  provider: string,
 ): { exceeded: boolean; message: string } {
-  if (provider === "google") {
-    if (userData.tokensUsedGemini >= TOKEN_LIMITS.gemini.dailyTokens) {
-      return {
-        exceeded: true,
-        message:` Daily token limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyTokens.toLocaleString()} tokens). Resets at midnight.`,
-      };
-    }
-    if (userData.requestsUsedGemini >= TOKEN_LIMITS.gemini.dailyRequests) {
-      return {
-        exceeded: true,
-        message: `Daily request limit reached for Gemini (${TOKEN_LIMITS.gemini.dailyRequests} requests). Resets at midnight.`,
-      };
-    }
+  const tier = userData.subscriptionTier as keyof typeof TOKEN_LIMITS;
+  const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
+
+  if (userData.tokensUsedToday >= limit) {
+    return {
+      exceeded: true,
+      message: `Daily token limit reached (${limit.toLocaleString()} tokens). Upgrade to continue or wait until tomorrow.`,
+    };
   }
 
   return { exceeded: false, message: "" };
 }
 
 function supportsMultimodal(provider: string): boolean {
-  // Providers that support image/file parts with AI SDK v3
   return provider === "google" || provider === "groq";
 }
 
@@ -213,9 +198,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const limitCheck = checkLimits(userData, modelConfig.provider);
+    const limitCheck = checkTokenLimits(userData);
     if (limitCheck.exceeded) {
-      return NextResponse.json({ error: limitCheck.message }, { status: 429 });
+      return NextResponse.json(
+        {
+          error: limitCheck.message,
+          code: "TOKENS_EXHAUSTED",
+        },
+        { status: 429 },
+      );
     }
 
     // Conversation upsert
@@ -257,8 +248,6 @@ export async function POST(req: NextRequest) {
       size: number;
     }> = [];
 
-    // Build content for the current message
-    // Only the CURRENT message can be multimodal. History is string-only.
     let userMessageContent:
       | string
       | Array<
@@ -275,13 +264,11 @@ export async function POST(req: NextRequest) {
     if (files.length > 0) {
       const parts: any[] = [];
 
-      // Main text
       parts.push({
         type: "text",
         text: message,
       });
 
-      // Attach every file in structured multimodal format
       for (const file of files) {
         const mimeType = file.type;
         const bytes = await file.arrayBuffer();
@@ -295,40 +282,35 @@ export async function POST(req: NextRequest) {
         });
 
         if (fileSupport.type === "image") {
-          // Image part
           parts.push({
             type: "image",
-            image: buffer, // Buffer is allowed as binary data
+            image: buffer,
           });
         } else if (
           fileSupport.type === "pdf" ||
           fileSupport.type === "document" ||
           fileSupport.type === "audio"
         ) {
-          // File part (PDF, DOC, AUDIO)
           parts.push({
             type: "file",
-            mediaType: mimeType, // ✅ correct property name
+            mediaType: mimeType,
             data: buffer,
-            filename: file.name, // optional but useful
+            filename: file.name,
           });
         } else if (fileSupport.type === "text") {
-          // Text files get inlined as extra text content
           const textContent = buffer.toString("utf-8");
           parts.push({
             type: "text",
-            text: ` \n\n[Content from file: ${file.name}]\n${textContent}\n[End of file content]\n`,
+            text: `\n\n[Content from file: ${file.name}]\n${textContent}\n[End of file content]\n`,
           });
         }
       }
 
       userMessageContent = parts;
     } else {
-      // Plain text message
       userMessageContent = message;
     }
 
-    // Save user message to DB (store metadata if files)
     const dbMessageContent =
       files.length > 0
         ? JSON.stringify({
@@ -356,7 +338,6 @@ export async function POST(req: NextRequest) {
 
     function getAIModel(config: NonNullable<typeof modelConfig>) {
       if (isImageRequest && config.provider === "google") {
-        // Image generation model
         return google("imagen-3.0-generate-001");
       }
 
@@ -372,7 +353,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Auto-title only on first user message
     if (isFirstMessage) {
       try {
         const titleModel = getAIModel(modelConfig);
@@ -409,11 +389,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Format history messages: ALWAYS string content for SDK
     const formattedHistory = history.slice(0, -1).map((m) => {
       let textContent: unknown = m.content ?? "";
 
-      // Try to unwrap JSON { text, files } structure
       if (typeof textContent === "string") {
         try {
           const parsed = JSON.parse(textContent);
@@ -421,7 +399,7 @@ export async function POST(req: NextRequest) {
             textContent = parsed.text;
           }
         } catch {
-          // Not JSON, keep as is
+          // Not JSON
         }
       }
 
@@ -435,34 +413,13 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    console.log("=== Debug Info ===");
-    console.log("Files count:", files.length);
-    console.log("History messages:", formattedHistory.length);
-    console.log("Is image request:", isImageRequest);
-    console.log("Current message type:", typeof userMessageContent);
-    console.log(
-      "Current message is array:",
-      Array.isArray(userMessageContent),
-    );
-
-    for (let i = 0; i < formattedHistory.length; i++) {
-      const msg = formattedHistory[i];
-      if (typeof msg.content !== "string") {
-        console.error(
-          `ERROR: History message ${i} has non-string content:`,
-          typeof msg.content,
-        );
-      }
-    }
-
     const selectedModel = getAIModel(modelConfig);
 
-    // Final messages passed to AI SDK
     const finalMessages: any[] = [
       ...formattedHistory,
       {
         role: "user" as const,
-        content: userMessageContent, // string OR array of valid content parts
+        content: userMessageContent,
       },
     ];
 
@@ -489,14 +446,6 @@ export async function POST(req: NextRequest) {
       streamConfig.experimental_generateImage = true;
     }
 
-    console.log("Calling AI with config:", {
-      model: model,
-      messageCount: finalMessages.length,
-      hasTools: Object.keys(tools).length > 0,
-      isImageGen: isImageRequest,
-    });
-
-    // Special handling for Perplexity to get sources
     if (modelConfig.provider === "perplexity") {
       const { text, sources } = await generateText({
         model: selectedModel,
@@ -505,7 +454,6 @@ export async function POST(req: NextRequest) {
 
       let fullText = text;
 
-      // Append sources to the response
       if (sources && sources.length > 0) {
         fullText += "\n\n*Sources:*\n";
         sources.forEach((source, index) => {
@@ -516,7 +464,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Save to database
       await db.insert(messages).values({
         conversationId,
         role: "assistant",
@@ -525,7 +472,6 @@ export async function POST(req: NextRequest) {
         tokensUsed: null,
       });
 
-      // Stream the complete response with sources
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
@@ -550,32 +496,30 @@ export async function POST(req: NextRequest) {
     const supportsTokenUsage = modelConfig.supportsTokenUsage;
     const userId = session.user.id;
 
-    // Background task to collect full text, handle attachments & save to DB
     (async () => {
       try {
         for await (const chunk of response.textStream) {
           full += chunk;
         }
 
-        console.log("Full response received, length:", full.length);
-
         const responseData = await response.response;
 
         if (responseData && "experimental_attachments" in responseData) {
-          const attachments = (responseData as any).experimental_attachments || [];
-
-          console.log("Attachments found:", attachments.length);
+          const attachments =
+            (responseData as any).experimental_attachments || [];
 
           for (const attachment of attachments) {
             if (attachment.contentType?.startsWith("image/")) {
               const base64Data = attachment.content;
-              full +=` \n\n![Generated Image](data:${attachment.contentType};base64,${base64Data})\n`;
+              full += `\n\n![Generated Image](data:${attachment.contentType};base64,${base64Data})\n`;
             }
           }
         }
 
         const usage = await response.usage;
         const totalTokens = supportsTokenUsage ? usage?.totalTokens || 0 : 0;
+
+        console.log("Tokens used:", totalTokens);
 
         await db.insert(messages).values({
           conversationId: finalConversationId,
@@ -585,14 +529,30 @@ export async function POST(req: NextRequest) {
           tokensUsed: totalTokens,
         });
 
+        // Update user's token usage (only for Gemini which returns token counts)
         if (finalProvider === "google" && totalTokens > 0) {
           await db
             .update(user)
             .set({
-              tokensUsedGemini: sql`${user.tokensUsedGemini} + ${totalTokens}`,
-              requestsUsedGemini: sql`${user.requestsUsedGemini} + 1`,
+              tokensUsedToday: sql`${user.tokensUsedToday} + ${totalTokens}`,
             })
             .where(eq(user.id, userId));
+
+          console.log(`Updated user ${userId} with ${totalTokens} tokens`);
+
+          // Log token usage for analytics
+          const [updatedUser] = await db.select().from(user).where(eq(user.id, userId));
+          const tier = updatedUser.subscriptionTier as keyof typeof TOKEN_LIMITS;
+          const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
+          const remaining = limit - updatedUser.tokensUsedToday;
+
+          await db.insert(tokenUsageLog).values({
+            userId: userId,
+            tokensUsed: totalTokens,
+            remainingTokens: remaining,
+            action: "message_sent",
+            metadata: { model: finalModel, provider: finalProvider },
+          });
         }
       } catch (error) {
         console.error("Error in response processing:", error);

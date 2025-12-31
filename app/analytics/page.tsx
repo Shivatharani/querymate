@@ -17,15 +17,13 @@ type Conversation = {
 type UsageData = {
   firstLogin?: string;
   totalLogins?: number;
-  totalChats?: number;
-  gemini: {
+  totalConversations?: number;
+  tokens: {
     tokensUsed: number;
     tokensLimit: number;
-    requestsUsed: number;
-    requestsLimit: number;
-  };
-  perplexity: {
-    unlimited: boolean;
+    tokensRemaining: number;
+    tokensPercentage: number;
+    subscriptionTier: string;
   };
 };
 
@@ -50,7 +48,7 @@ function ratio(value: number, max: number) {
 export default function AnalyticsPage() {
   const router = useRouter();
 
-  const { data: usageData } = useSWR("/api/usage", fetcher);
+  const { data: usageData } = useSWR("/api/analytics/usage", fetcher);
   const usage: UsageData | undefined = usageData?.usage;
 
   const { data: convData } = useSWR("/api/conversations", fetcher);
@@ -59,11 +57,8 @@ export default function AnalyticsPage() {
     new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
   );
 
-  const geminiTokenPercent = usage
-    ? ratio(usage.gemini.tokensUsed, usage.gemini.tokensLimit)
-    : 0;
-  const geminiRequestPercent = usage
-    ? ratio(usage.gemini.requestsUsed, usage.gemini.requestsLimit)
+  const geminiTokenPercent = usage?.tokens
+    ? ratio(usage.tokens.tokensUsed, usage.tokens.tokensLimit)
     : 0;
 
   const formatDate = (dateString: string) => {
@@ -131,7 +126,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {chats.length}
+              {usage?.totalConversations ?? chats.length}
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Conversations created
@@ -165,11 +160,11 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl font-bold">
               <Zap className="w-6 h-6 text-yellow-500" />
-              Model Rate Limits
+              Token Usage ({usage?.tokens?.subscriptionTier ?? "free"} tier)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Gemini */}
+            {/* Gemini Tokens */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">Google Gemini</h3>
@@ -180,31 +175,28 @@ export default function AnalyticsPage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600 dark:text-gray-400">Tokens</span>
+                    <span className="text-gray-600 dark:text-gray-400">Daily Tokens</span>
                     <span className="font-mono font-semibold">
-                      {usage ? `${usage.gemini.tokensUsed}/${usage.gemini.tokensLimit}` : "0/0"}
+                      {usage?.tokens 
+                        ? `${usage.tokens.tokensUsed}/${usage.tokens.tokensLimit}` 
+                        : "0/0"}
                     </span>
                   </div>
                   <div className="h-3 w-full rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden shadow-inner">
                     <div
-                      className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full shadow-sm"
+                      className={`h-full rounded-full shadow-sm transition-all ${
+                        geminiTokenPercent >= 90 
+                          ? 'bg-gradient-to-r from-red-400 to-red-600' 
+                          : 'bg-gradient-to-r from-yellow-400 to-yellow-600'
+                      }`}
                       style={{ width: `${geminiTokenPercent}%` }}
                     />
                   </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600 dark:text-gray-400">Requests</span>
-                    <span className="font-mono font-semibold">
-                      {usage ? `${usage.gemini.requestsUsed}/${usage.gemini.requestsLimit}` : "0/0"}
-                    </span>
-                  </div>
-                  <div className="h-3 w-full rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden shadow-inner">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full shadow-sm"
-                      style={{ width: `${geminiRequestPercent}%` }}
-                    />
-                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    {usage?.tokens 
+                      ? `${usage.tokens.tokensRemaining} tokens remaining (${geminiTokenPercent}% used)` 
+                      : "Loading..."}
+                  </p>
                 </div>
               </div>
             </div>
@@ -215,7 +207,7 @@ export default function AnalyticsPage() {
                 <Infinity className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                 <h4 className="font-semibold text-gray-900 dark:text-gray-100">Perplexity</h4>
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-mono">
-                  {usage?.perplexity.unlimited ? "Unlimited" : "Metered"}
+                  Unlimited
                 </p>
               </div>
               <div className="text-center p-4 rounded-lg bg-green-50 dark:bg-green-950/30">

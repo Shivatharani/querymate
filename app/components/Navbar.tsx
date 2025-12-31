@@ -38,6 +38,14 @@ export default function Navbar() {
                 Home
               </Button>
             </Link>
+            <Link href="/pricing">
+              <Button
+                variant="ghost"
+                className="text-sm font-medium dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white sm:text-base"
+              >
+                Pricing
+              </Button>
+            </Link>
             <Link href="/auth/login">
               <Button
                 variant="ghost"
@@ -80,6 +88,13 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
+            </Link>
+            <Link
+              href="/pricing"
+              className="block rounded-lg px-4 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Pricing
             </Link>
             <Link
               href="/auth/login"

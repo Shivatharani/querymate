@@ -22,20 +22,17 @@ export interface ModelConfig {
 
 export const MODELS: Record<string, ModelConfig> = {
   // Google Gemini Models (using stable version names)
-  "gemini-2.5-pro": {
-    id: "gemini-2.5-pro",
-    name: "Gemini 2.5 Pro",
-    provider: "google",
-    modelId: "gemini-2.5-pro",
-    description: "Advanced thinking model",
-    supportsTokenUsage: true,
-  },
   "gemini-2.5-flash": {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
     provider: "google",
     modelId: "gemini-2.5-flash",
     description: "Fast and efficient",
+    limits: {
+      rpm: 5,
+      rpd: 20,
+      tpm: 250000,
+    },
     supportsTokenUsage: true,
   },
   "gemini-2.5-flash-lite": {
@@ -44,17 +41,13 @@ export const MODELS: Record<string, ModelConfig> = {
     provider: "google",
     modelId: "gemini-2.5-flash-lite",
     description: "Ultra fast, cost-efficient",
+    limits: {
+      rpm: 10,
+      rpd: 20,
+      tpm: 250000,
+    },
     supportsTokenUsage: true,
   },
-  "gemini-2.0-flash": {
-    id: "gemini-2.0-flash",
-    name: "Gemini 2.0 Flash",
-    provider: "google",
-    modelId: "gemini-2.0-flash",
-    description: "Stable workhorse model",
-    supportsTokenUsage: true,
-  },
-
   // Perplexity Models
   sonar: {
     id: "sonar",
@@ -86,7 +79,7 @@ export const MODELS: Record<string, ModelConfig> = {
       tpm: 12000,
       tpd: 100000,
     },
-    supportsTokenUsage: true,
+    supportsTokenUsage: false,
   },
   "llama-3.1-8b": {
     id: "llama-3.1-8b",
@@ -100,7 +93,7 @@ export const MODELS: Record<string, ModelConfig> = {
       tpm: 6000,
       tpd: 500000,
     },
-    supportsTokenUsage: true,
+    supportsTokenUsage: false,
   },
   "llama-4-scout": {
     id: "llama-4-scout",
@@ -114,7 +107,7 @@ export const MODELS: Record<string, ModelConfig> = {
       tpm: 30000,
       tpd: 500000,
     },
-    supportsTokenUsage: true,
+    supportsTokenUsage: false,
   },
   "llama-4-maverick": {
     id: "llama-4-maverick",
@@ -128,7 +121,7 @@ export const MODELS: Record<string, ModelConfig> = {
       tpm: 6000,
       tpd: 500000,
     },
-    supportsTokenUsage: true,
+    supportsTokenUsage: false,
   },
   "qwen3-32b": {
     id: "qwen3-32b",
@@ -142,7 +135,7 @@ export const MODELS: Record<string, ModelConfig> = {
       tpm: 6000,
       tpd: 500000,
     },
-    supportsTokenUsage: true,
+    supportsTokenUsage: false,
   },
   "kimi-k2": {
     id: "kimi-k2",
@@ -156,7 +149,7 @@ export const MODELS: Record<string, ModelConfig> = {
       tpm: 10000,
       tpd: 300000,
     },
-    supportsTokenUsage: true,
+    supportsTokenUsage: false,
   },
 };
 
@@ -168,12 +161,7 @@ export const MODEL_GROUPS: Record<
   google: {
     name: "Google",
     icon: "🧠",
-    models: [
-      "gemini-2.5-pro",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite",
-      "gemini-2.0-flash",
-    ],
+    models: ["gemini-2.5-flash", "gemini-2.5-flash-lite"],
   },
   perplexity: {
     name: "Perplexity",

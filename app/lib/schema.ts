@@ -1,4 +1,3 @@
-// lib/schema.ts
 import {
   pgTable,
   text,
@@ -7,19 +6,37 @@ import {
   integer,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 //
-// --- Token Limits Configuration (Gemini only - Perplexity doesn't return token usage) ---
+// ------------------------------------------------------------------
+// TOKEN LIMIT CONFIG (SAFE – NOT RELATED TO THE ERROR)
+// ------------------------------------------------------------------
 //
 export const TOKEN_LIMITS = {
-  gemini: {
-    dailyTokens: 1_000_000, // 1M tokens per day
-    dailyRequests: 100,
+  free: {
+    dailyTokens: 5000,
+    maxOutputTokens: 150,
+    alertThresholds: [1000, 500, 200],
+  },
+  pro: {
+    dailyTokens: 75000,
+    maxOutputTokens: 500,
+    alertThresholds: [15000, 7500, 2500],
+  },
+  "pro-max": {
+    dailyTokens: 25000,
+    maxOutputTokens: 800,
+    alertThresholds: [5000, 2500, 1000],
   },
 } as const;
 
+type SubscriptionTier = keyof typeof TOKEN_LIMITS;
+
 //
-// --- Better Auth required tables ---
+// ------------------------------------------------------------------
+// CORE AUTH TABLES
+// ------------------------------------------------------------------
 //
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -29,10 +46,17 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  // Token tracking (Gemini only)
-  tokensUsedGemini: integer("tokens_used_gemini").notNull().default(0),
-  requestsUsedGemini: integer("requests_used_gemini").notNull().default(0),
+
+  // Token tracking
+  tokensUsedToday: integer("tokens_used_today").notNull().default(0),
   tokenResetAt: timestamp("token_reset_at").notNull().defaultNow(),
+
+  subscriptionTier: text("subscription_tier")
+    .notNull()
+    .default("free") as unknown as SubscriptionTier,
+
+  lastTokenAlert: integer("last_token_alert").default(null),
+  maxOutputTokens: integer("max_output_tokens").notNull().default(150),
 });
 
 export const session = pgTable("session", {
@@ -76,7 +100,9 @@ export const verification = pgTable("verification", {
 });
 
 //
-// --- App tables ---
+// ------------------------------------------------------------------
+// APP TABLES
+// ------------------------------------------------------------------
 //
 export const conversations = pgTable("conversations", {
   id: text("id")
@@ -94,48 +120,130 @@ export const messages = pgTable("messages", {
   conversationId: text("conversation_id").references(() => conversations.id, {
     onDelete: "cascade",
   }),
-  role: text("role"), // user / assistant
-  
-  // Content field can store:
-  // 1. Plain text string
-  // 2. JSON string with format: { text: string, files: Array<{name, type, size}> }
+  role: text("role"), // user | assistant
   content: text("content"),
-  
-  // Optional: Separate column for file attachments metadata
-  // This makes it easier to query messages with attachments
-  // Type: Array<{ name: string, type: string, size: number, url?: string }>
+
   attachments: jsonb("attachments").$type<
     Array<{
       name: string;
       type: string;
       size: number;
-      url?: string; // Optional: if storing files in Supabase Storage
+      url?: string;
     }>
   >(),
-  
-  model: text("model"), // gemini / perplexity / groq
-  tokensUsed: integer("tokens_used"), // tokens consumed by this message
+
+  model: text("model").notNull().default("gemini-2.5-flash"),
+  tokensUsed: integer("tokens_used").notNull().default(0),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Type exports for TypeScript
+export const tokenUsageLog = pgTable("token_usage_log", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  messageId: text("message_id").references(() => messages.id, {
+    onDelete: "set null",
+  }),
+  tokensUsed: integer("tokens_used").notNull().default(0),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  remainingTokens: integer("remaining_tokens").notNull(),
+  dailyLimit: integer("daily_limit").notNull().default(5000),
+  subscriptionTier: text("subscription_tier")
+  .notNull()
+  .default("free") as unknown as SubscriptionTier,
+
+  action: text("action").notNull(),
+  maxOutputTokensUsed: integer("max_output_tokens_used").notNull().default(150),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+//
+// ------------------------------------------------------------------
+// RELATIONS (DEFINED LAST – THIS FIXES THE ERROR)
+// ------------------------------------------------------------------
+//
+export const userRelations = relations(user, ({ many }) => ({
+  conversations: many(conversations),
+  tokenLogs: many(tokenUsageLog),
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  user: one(user, {
+    fields: [conversations.userId],
+    references: [user.id],
+  }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+}));
+
+export const tokenUsageLogRelations = relations(tokenUsageLog, ({ one }) => ({
+  user: one(user, {
+    fields: [tokenUsageLog.userId],
+    references: [user.id],
+  }),
+  message: one(messages, {
+    fields: [tokenUsageLog.messageId],
+    references: [messages.id],
+  }),
+}));
+
+//
+// ------------------------------------------------------------------
+// TYPE EXPORTS
+// ------------------------------------------------------------------
+//
 export type User = typeof user.$inferSelect;
-export type NewUser = typeof user.$inferInsert;
+export type NewUser = typeof user.$inferInsert & {
+  subscriptionTier: SubscriptionTier;
+  maxOutputTokens?: number;
+};
+
 export type Session = typeof session.$inferSelect;
 export type NewSession = typeof session.$inferInsert;
+
 export type Account = typeof account.$inferSelect;
 export type NewAccount = typeof account.$inferInsert;
+
 export type Verification = typeof verification.$inferSelect;
 export type NewVerification = typeof verification.$inferInsert;
+
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;
+
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 
-// Helper type for file attachments
+export type TokenUsageLog = typeof tokenUsageLog.$inferSelect;
+export type NewTokenUsageLog = typeof tokenUsageLog.$inferInsert;
+
 export type FileAttachment = {
   name: string;
   type: string;
   size: number;
   url?: string;
 };
+
+//
+// ------------------------------------------------------------------
+// UTILS
+// ------------------------------------------------------------------
+//
+export function getTokenLimits(tier: SubscriptionTier) {
+  return TOKEN_LIMITS[tier];
+}

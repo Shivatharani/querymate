@@ -1,5 +1,5 @@
 "use client";
-
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -48,15 +48,11 @@ type Conversation = {
 };
 
 type UsageData = {
-  gemini: {
-    tokensUsed: number;
-    tokensLimit: number;
-    requestsUsed: number;
-    requestsLimit: number;
-  };
-  perplexity: {
-    unlimited: boolean;
-  };
+  tokensUsed: number;
+  tokensLimit: number;
+  tokensRemaining: number;
+  tokensPercentage: number;
+  subscriptionTier: string;
 };
 
 function formatTokens(tokens: number): string {
@@ -82,7 +78,7 @@ export default function ChatSidebar({
 }) {
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
-  // Removed analyticsOpen state
+  const router = useRouter();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<{
@@ -433,19 +429,26 @@ export default function ChatSidebar({
           </div>
         </div>
 
-        {/* Token Usage Display */}
+        {/* Token Usage Display - FIXED */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 text-xs space-y-2">
-          {/* Gemini */}
-          {usage && (
+          {/* Gemini Tokens */}
+          {usage ? (
             <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
-                <span>Google tokens</span>
+                <span>Gemini tokens ({usage.subscriptionTier})</span>
               </div>
               <span className="font-mono">
-                {formatTokens(usage.gemini.tokensUsed)}/
-                {formatTokens(usage.gemini.tokensLimit)}
+                {formatTokens(usage.tokensUsed)}/{formatTokens(usage.tokensLimit)}
               </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                <span>Gemini tokens</span>
+              </div>
+              <span className="font-mono">Loading...</span>
             </div>
           )}
           {/* Perplexity */}
@@ -591,8 +594,16 @@ export default function ChatSidebar({
           </div>
         </nav>
 
-        {/* Export and Import Buttons */}
-        <div className="px-4 pb-4">
+        {/* Analytics and Export Buttons */}
+        <div className="px-4 pb-4 space-y-2">
+          <Button
+            onClick={() => router.push("/analytics")}
+            variant="outline"
+            className="w-full flex items-center gap-2 justify-center h-9 rounded-md text-sm dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+            suppressHydrationWarning
+          >
+            <BarChart3 className="w-4 h-4" /> Analytics
+          </Button>
           <Button
             onClick={handleExportAll}
             variant="outline"

@@ -1,9 +1,42 @@
-// app/api/usage/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/lib";
 import { user, TOKEN_LIMITS } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-middleware";
+
+async function checkAndResetDailyTokens(userId: string) {
+  const [userData] = await db.select().from(user).where(eq(user.id, userId));
+
+  if (!userData) return null;
+
+  const now = new Date();
+  const resetAt = new Date(userData.tokenResetAt);
+
+  // Check if it's a new day
+  if (
+    now.getDate() !== resetAt.getDate() ||
+    now.getMonth() !== resetAt.getMonth() ||
+    now.getFullYear() !== resetAt.getFullYear()
+  ) {
+    await db
+      .update(user)
+      .set({
+        tokensUsedToday: 0,
+        tokenResetAt: now,
+        lastTokenAlert: null,
+      })
+      .where(eq(user.id, userId));
+
+    return {
+      ...userData,
+      tokensUsedToday: 0,
+      tokenResetAt: now,
+      lastTokenAlert: null,
+    };
+  }
+
+  return userData;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,18 +46,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [userData] = await db
-      .select({
-        tokensUsedGemini: user.tokensUsedGemini,
-        requestsUsedGemini: user.requestsUsedGemini,
-        tokenResetAt: user.tokenResetAt,
-      })
-      .from(user)
-      .where(eq(user.id, session.user.id));
+    const userData = await checkAndResetDailyTokens(session.user.id);
 
     if (!userData) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    const tier = userData.subscriptionTier as keyof typeof TOKEN_LIMITS;
+    const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
 
     // Check if we need to reset (new day)
     const now = new Date();
@@ -34,30 +63,8 @@ export async function GET(req: NextRequest) {
       now.getMonth() !== resetAt.getMonth() ||
       now.getFullYear() !== resetAt.getFullYear();
 
-    // Gemini has tracked limits, Perplexity is unlimited (doesn't return token usage)
-    const usage = needsReset
-      ? {
-          gemini: {
-            tokensUsed: 0,
-            tokensLimit: TOKEN_LIMITS.gemini.dailyTokens,
-            requestsUsed: 0,
-            requestsLimit: TOKEN_LIMITS.gemini.dailyRequests,
-          },
-          perplexity: {
-            unlimited: true,
-          },
-        }
-      : {
-          gemini: {
-            tokensUsed: userData.tokensUsedGemini,
-            tokensLimit: TOKEN_LIMITS.gemini.dailyTokens,
-            requestsUsed: userData.requestsUsedGemini,
-            requestsLimit: TOKEN_LIMITS.gemini.dailyRequests,
-          },
-          perplexity: {
-            unlimited: true,
-          },
-        };
+    const tokensUsed = needsReset ? 0 : userData.tokensUsedToday;
+    const tokensRemaining = limit - tokensUsed;
 
     // Calculate next reset time (midnight)
     const nextReset = new Date(now);
@@ -65,7 +72,13 @@ export async function GET(req: NextRequest) {
     nextReset.setHours(0, 0, 0, 0);
 
     return NextResponse.json({
-      usage,
+      usage: {
+        tokensUsed,
+        tokensLimit: limit,
+        tokensRemaining,
+        tokensPercentage: Math.round((tokensUsed / limit) * 100),
+        subscriptionTier: userData.subscriptionTier,
+      },
       resetsAt: nextReset.toISOString(),
     });
   } catch (error) {
