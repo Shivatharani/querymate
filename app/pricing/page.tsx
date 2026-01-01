@@ -6,7 +6,14 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ArrowLeft, Check, Loader2, Sparkles } from "lucide-react";
 
 const pricingPlans = [
   {
@@ -15,6 +22,7 @@ const pricingPlans = [
     priceMonthly: 0,
     priceYearly: 0,
     tokensDaily: 5000,
+    maxOutputTokens: 150,
     popular: false,
     features: [
       "5k tokens per day",
@@ -31,6 +39,7 @@ const pricingPlans = [
     priceMonthly: 9,
     priceYearly: 90,
     tokensDaily: 75000,
+    maxOutputTokens: 500,
     popular: true,
     features: [
       "75k tokens per day",
@@ -48,6 +57,7 @@ const pricingPlans = [
     priceMonthly: 29,
     priceYearly: 290,
     tokensDaily: 250000,
+    maxOutputTokens: 800,
     popular: false,
     features: [
       "250k tokens per day",
@@ -67,23 +77,33 @@ export default function PricingPage() {
   const router = useRouter();
   const [isYearly, setIsYearly] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState<{ open: boolean; plan: string; tokens: number } | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('better-auth.token') || sessionStorage.getItem('better-auth.token');
-    setIsAuthenticated(!!token);
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/auth/sessions", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAuthenticated(!!data?.user);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    checkAuth();
   }, []);
 
-  const getButtonText = (plan: any) => {
+  const getButtonText = (plan: typeof pricingPlans[0]) => {
     if (plan.slug === "free") return "Get Started Free";
     if (plan.slug === "pro") return "Upgrade to Pro";
     return "Upgrade to Pro Max";
-  };
-
-  const getButtonHref = (plan: any) => {
-    if (plan.slug === "free") {
-      return isAuthenticated ? "/chat" : "/auth/signup";
-    }
-    return `/auth/subscribe?plan=${plan.slug}&billing=${isYearly ? 'yearly' : 'monthly'}`;
   };
 
   const handleFreeClick = (e: React.MouseEvent) => {
@@ -95,8 +115,68 @@ export default function PricingPage() {
     }
   };
 
+  const handleUpgrade = async (plan: typeof pricingPlans[0]) => {
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+
+    setUpgrading(plan.slug);
+
+    try {
+      const response = await fetch("/api/subscription/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ tier: plan.slug }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upgrade");
+      }
+
+      setSuccessModal({
+        open: true,
+        plan: plan.name,
+        tokens: plan.tokensDaily,
+      });
+
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
+    } catch (error) {
+      console.error("Upgrade error:", error);
+      alert(error instanceof Error ? error.message : "Failed to upgrade. Please try again.");
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
+      {/* Success Modal */}
+      <Dialog open={successModal?.open || false} onOpenChange={() => setSuccessModal(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-center">
+              Upgraded to {successModal?.plan}!
+            </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <Sparkles className="w-5 h-5 text-yellow-500" />
+                <span>You now have {successModal?.tokens?.toLocaleString()} tokens per day!</span>
+              </div>
+              <p className="mt-4 text-sm text-gray-500">Redirecting to home page...</p>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       {/* Back Button */}
       <Link 
         href="/" 
@@ -206,8 +286,8 @@ export default function PricingPage() {
                 
                 {/* CTA Button */}
                 <Button 
-                  onClick={plan.slug === "free" ? handleFreeClick : undefined}
-                  asChild={plan.slug !== "free"}
+                  onClick={plan.slug === "free" ? handleFreeClick : () => handleUpgrade(plan)}
+                  disabled={upgrading === plan.slug}
                   className={`w-full h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-0.5 ${
                     plan.popular 
                       ? "bg-blue-500 hover:bg-blue-600 text-white border-blue-500" 
@@ -216,17 +296,20 @@ export default function PricingPage() {
                   size="lg"
                   variant={plan.slug === "free" ? "outline" : "default"}
                 >
-                  {plan.slug === "free" ? (
+                  {upgrading === plan.slug ? (
                     <span className="flex items-center justify-center gap-2">
-                      {getButtonText(plan)}
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Upgrading...
                     </span>
                   ) : (
-                    <Link href={getButtonHref(plan)} className="flex items-center justify-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       {getButtonText(plan)}
-                      <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </Link>
+                      {plan.slug !== "free" && (
+                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      )}
+                    </span>
                   )}
                 </Button>
               </CardContent>

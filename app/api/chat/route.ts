@@ -17,7 +17,7 @@ async function checkAndResetDailyTokens(userId: string) {
   if (!userData) return null;
 
   const now = new Date();
-  const resetAt = new Date(userData.tokenResetAt);
+  const resetAt = new Date(userData.tokenResetAt as Date);
 
   if (
     now.getDate() !== resetAt.getDate() ||
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const limitCheck = checkTokenLimits(userData);
+    const limitCheck = checkTokenLimits(userData as { tokensUsedToday: number; subscriptionTier: string });
     if (limitCheck.exceeded) {
       return NextResponse.json(
         {
@@ -323,8 +323,8 @@ export async function POST(req: NextRequest) {
       conversationId,
       role: "user",
       content: dbMessageContent,
-      model: null,
-      tokensUsed: null,
+      model: "user-input",
+      tokensUsed: 0,
     });
 
     const history = await db
@@ -469,7 +469,7 @@ export async function POST(req: NextRequest) {
         role: "assistant",
         content: fullText,
         model: model,
-        tokensUsed: null,
+        tokensUsed: 0,
       });
 
       const encoder = new TextEncoder();
@@ -542,9 +542,9 @@ export async function POST(req: NextRequest) {
 
           // Log token usage for analytics
           const [updatedUser] = await db.select().from(user).where(eq(user.id, userId));
-          const tier = updatedUser.subscriptionTier as keyof typeof TOKEN_LIMITS;
+          const tier = (updatedUser?.subscriptionTier || "free") as keyof typeof TOKEN_LIMITS;
           const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
-          const remaining = limit - updatedUser.tokensUsedToday;
+          const remaining = limit - ((updatedUser?.tokensUsedToday as number) || 0);
 
           await db.insert(tokenUsageLog).values({
             userId: userId,

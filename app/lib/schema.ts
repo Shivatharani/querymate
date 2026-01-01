@@ -25,9 +25,9 @@ export const TOKEN_LIMITS = {
     alertThresholds: [15000, 7500, 2500],
   },
   "pro-max": {
-    dailyTokens: 25000,
+    dailyTokens: 250000,
     maxOutputTokens: 800,
-    alertThresholds: [5000, 2500, 1000],
+    alertThresholds: [50000, 25000, 10000],
   },
 } as const;
 
@@ -53,9 +53,9 @@ export const user = pgTable("user", {
 
   subscriptionTier: text("subscription_tier")
     .notNull()
-    .default("free") as unknown as SubscriptionTier,
+    .default("free"),
 
-  lastTokenAlert: integer("last_token_alert").default(null),
+  lastTokenAlert: integer("last_token_alert"),
   maxOutputTokens: integer("max_output_tokens").notNull().default(150),
 });
 
@@ -156,8 +156,8 @@ export const tokenUsageLog = pgTable("token_usage_log", {
   remainingTokens: integer("remaining_tokens").notNull(),
   dailyLimit: integer("daily_limit").notNull().default(5000),
   subscriptionTier: text("subscription_tier")
-  .notNull()
-  .default("free") as unknown as SubscriptionTier,
+    .notNull()
+    .default("free"),
 
   action: text("action").notNull(),
   maxOutputTokensUsed: integer("max_output_tokens_used").notNull().default(150),

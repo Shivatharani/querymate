@@ -36,6 +36,8 @@ import {
   BarChart3,
   Download,
   FileText,
+  Crown,
+  Sparkles,
 } from "lucide-react";
 
 import jsPDF from "jspdf";
@@ -431,12 +433,44 @@ export default function ChatSidebar({
 
         {/* Token Usage Display - FIXED */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 text-xs space-y-2">
+          {/* Subscription Tier Badge */}
+          {usage && (
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                {usage.subscriptionTier === "pro-max" ? (
+                  <Crown className="w-3.5 h-3.5 text-purple-500" />
+                ) : usage.subscriptionTier === "pro" ? (
+                  <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                ) : (
+                  <Zap className="w-3.5 h-3.5 text-gray-500" />
+                )}
+                <span className={`font-semibold capitalize ${
+                  usage.subscriptionTier === "pro-max" 
+                    ? "text-purple-600 dark:text-purple-400" 
+                    : usage.subscriptionTier === "pro" 
+                    ? "text-blue-600 dark:text-blue-400" 
+                    : "text-gray-600 dark:text-gray-400"
+                }`}>
+                  {usage.subscriptionTier === "pro-max" ? "Pro Max" : usage.subscriptionTier}
+                </span>
+              </div>
+              {usage.subscriptionTier === "free" && (
+                <button
+                  onClick={() => router.push("/pricing")}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                >
+                  Upgrade
+                </button>
+              )}
+            </div>
+          )}
+          
           {/* Gemini Tokens */}
           {usage ? (
             <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3" />
-                <span>Gemini tokens ({usage.subscriptionTier})</span>
+                <span>Gemini tokens</span>
               </div>
               <span className="font-mono">
                 {formatTokens(usage.tokensUsed)}/{formatTokens(usage.tokensLimit)}
