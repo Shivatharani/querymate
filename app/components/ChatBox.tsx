@@ -654,7 +654,7 @@ export default function ChatBox({
               Upgrade to continue chatting or wait {tokenStatus?.hoursUntilReset ?? 0} hours for reset.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 p-6 bg-card/80 backdrop-blur-sm">
             <Button
               variant="outline"
               onClick={() => setShowTokenDepletedModal(false)}
@@ -663,14 +663,15 @@ export default function ChatBox({
               Wait for Reset
             </Button>
             <Button
-              onClick={() => {
-                setShowTokenDepletedModal(false)
-                router.push('/pricing')
-              }}
-              className="flex-1 bg-gradient-to-r from-warning to-destructive hover:from-warning/90 hover:to-destructive/90"
-            >
-              Upgrade Now
-            </Button>
+  onClick={() => {
+    setShowTokenDepletedModal(false)
+    router.push('/pricing')
+  }}
+  className="flex-1 h-12 px-8 font-semibold text-lg shadow-2xl border-2 border-white/20 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 hover:from-orange-400 hover:via-red-400 hover:to-pink-500 active:scale-95 transition-all duration-200 text-white !ring-4 !ring-white/30"
+>
+   Upgrade Now
+</Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -689,18 +690,19 @@ export default function ChatBox({
                   </p>
                   <div className="w-full max-w-2xl">
                     <Suggestions className="flex flex-nowrap justify-center gap-3 overflow-x-auto pb-4 -mb-4 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent snap-x snap-mandatory">
-                      {suggestions.map((suggestion, i) => (
-                        <Suggestion
-                          key={suggestion}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          variant="outline"
-                          size="sm"
-                          className="bg-muted/80 backdrop-blur-sm text-foreground shadow-md border-border hover:shadow-lg transition-all whitespace-nowrap flex-shrink-0 snap-center h-12 px-4 py-2"
-                        >
-                          {suggestion}
-                        </Suggestion>
-                      ))}
-                    </Suggestions>
+  {suggestions.map((suggestion, i) => (
+    <Suggestion
+      key={suggestion}
+      suggestion={suggestion}
+      onClick={() => handleSuggestionClick(suggestion)}
+      variant="outline"
+      size="sm"
+      className="bg-muted/80 backdrop-blur-sm text-foreground shadow-md border-border hover:shadow-lg transition-all whitespace-nowrap flex-shrink-0 snap-center h-12 px-4 py-2"
+    />
+  ))}
+</Suggestions>
+
+                      
                   </div>
                 </div>
               ) : (
@@ -851,10 +853,12 @@ export default function ChatBox({
               )}
             </div>
           </div>
-          <ScrollBar orientation="vertical" className="w-2 bg-transparent">
-            <ScrollBar.Thumb className="rounded-full bg-muted hover:bg-muted-foreground/50 transition-colors" />
-          </ScrollBar>
-        </ScrollArea>
+<ScrollBar 
+  orientation="vertical" 
+  className="w-2 bg-transparent [&>div]:rounded-full [&>div]:bg-muted hover:[&>div]:bg-muted-foreground/50 transition-colors"
+/>
+</ScrollArea>
+
       </div>
 
       {/* Input area with increased height and visible disclaimer */}
