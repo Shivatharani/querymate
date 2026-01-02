@@ -1,19 +1,27 @@
 import { db } from "@/lib/lib";
-import { messages, conversations, user, tokenUsageLog, TOKEN_LIMITS } from "@/lib/schema";
+import {
+  messages,
+  conversations,
+  user,
+  tokenUsageLog,
+  TOKEN_LIMITS,
+} from "@/lib/schema";
 import { streamText, generateText } from "ai";
 import { gemini } from "@/lib/ai-gemini";
 import { perplexity } from "@/lib/ai-perplexity";
 import { groq } from "@/lib/ai-groq";
 import { google } from "@ai-sdk/google";
-import { MODELS, getModel } from "@/lib/models";
+import { getModel } from "@/lib/models";
 import { eq, and, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-middleware";
 import { Buffer } from "buffer";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 async function checkAndResetDailyTokens(userId: string) {
   const [userData] = await db.select().from(user).where(eq(user.id, userId));
-
   if (!userData) return null;
 
   const now = new Date();
@@ -44,12 +52,10 @@ async function checkAndResetDailyTokens(userId: string) {
   return userData;
 }
 
-function checkTokenLimits(
-  userData: {
-    tokensUsedToday: number;
-    subscriptionTier: string;
-  },
-): { exceeded: boolean; message: string } {
+function checkTokenLimits(userData: {
+  tokensUsedToday: number;
+  subscriptionTier: string;
+}): { exceeded: boolean; message: string } {
   const tier = userData.subscriptionTier as keyof typeof TOKEN_LIMITS;
   const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
 
@@ -74,13 +80,10 @@ function getFileSupport(
   supported: boolean;
   type: "image" | "pdf" | "text" | "audio" | "document" | "unsupported";
 } {
-  if (mimeType.startsWith("image/")) {
-    return { supported: true, type: "image" };
-  }
+  if (mimeType.startsWith("image/")) return { supported: true, type: "image" };
 
-  if (mimeType === "application/pdf" && provider === "google") {
+  if (mimeType === "application/pdf" && provider === "google")
     return { supported: true, type: "pdf" };
-  }
 
   if (
     (mimeType === "application/msword" ||
@@ -100,9 +103,8 @@ function getFileSupport(
     return { supported: true, type: "audio" };
   }
 
-  if (mimeType === "text/plain" || mimeType.startsWith("text/")) {
+  if (mimeType === "text/plain" || mimeType.startsWith("text/"))
     return { supported: true, type: "text" };
-  }
 
   return { supported: false, type: "unsupported" };
 }
@@ -138,7 +140,6 @@ function isImageGenerationRequest(text: string): boolean {
 export async function POST(req: NextRequest) {
   try {
     const session = await getAuthSession(req);
-
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -146,7 +147,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
 
     let conversationId = formData.get("conversationId") as string | null;
-    const message = formData.get("message") as string;
+    const message = (formData.get("message") as string) || "";
     const title = formData.get("title") as string | null;
     const model = (formData.get("model") as string) || "gemini-2.5-flash";
 
@@ -158,10 +159,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!message) {
-      return NextResponse.json(
-        { error: "message is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "message is required" }, { status: 400 });
     }
 
     const modelConfig = getModel(model);
@@ -198,13 +196,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const limitCheck = checkTokenLimits(userData as { tokensUsedToday: number; subscriptionTier: string });
+    const limitCheck = checkTokenLimits(userData as any);
     if (limitCheck.exceeded) {
       return NextResponse.json(
-        {
-          error: limitCheck.message,
-          code: "TOKENS_EXHAUSTED",
-        },
+        { error: limitCheck.message, code: "TOKENS_EXHAUSTED" },
         { status: 429 },
       );
     }
@@ -242,17 +237,17 @@ export async function POST(req: NextRequest) {
     const urls = extractUrls(message);
     const isImageRequest = isImageGenerationRequest(message);
 
-    const fileMetadata: Array<{
-      name: string;
-      type: string;
-      size: number;
-    }> = [];
+    const fileMetadata: Array<{ name: string; type: string; size: number }> = [];
 
     let userMessageContent:
       | string
       | Array<
           | { type: "text"; text: string }
-          | { type: "image"; image: string | ArrayBuffer | Uint8Array | Buffer }
+          | {
+              type: "image";
+              image: string | ArrayBuffer | Uint8Array | Buffer;
+              mediaType?: string;
+            }
           | {
               type: "file";
               mediaType: string;
@@ -261,13 +256,10 @@ export async function POST(req: NextRequest) {
             }
         >;
 
+    // Build multimodal content
     if (files.length > 0) {
       const parts: any[] = [];
-
-      parts.push({
-        type: "text",
-        text: message,
-      });
+      parts.push({ type: "text", text: message });
 
       for (const file of files) {
         const mimeType = file.type;
@@ -275,22 +267,20 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(bytes);
         const fileSupport = getFileSupport(mimeType, modelConfig.provider);
 
-        fileMetadata.push({
-          name: file.name,
-          type: mimeType,
-          size: file.size,
-        });
+        fileMetadata.push({ name: file.name, type: mimeType, size: file.size });
 
         if (fileSupport.type === "image") {
           parts.push({
             type: "image",
-            image: buffer,
+            image: buffer, // Buffer is OK (Uint8Array-compatible)
+            mediaType: mimeType,
           });
         } else if (
           fileSupport.type === "pdf" ||
           fileSupport.type === "document" ||
           fileSupport.type === "audio"
         ) {
+          // Only Gemini path reaches here because of getFileSupport/provider checks
           parts.push({
             type: "file",
             mediaType: mimeType,
@@ -353,10 +343,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Title generation (first message only)
     if (isFirstMessage) {
       try {
         const titleModel = getAIModel(modelConfig);
-
         const titleGen = await streamText({
           model: titleModel,
           messages: [
@@ -373,7 +363,6 @@ export async function POST(req: NextRequest) {
         }
 
         generatedTitle = generatedTitle.replace(/['"]/g, "").trim();
-
         if (generatedTitle.length > 30) {
           generatedTitle = generatedTitle.substring(0, 27) + "...";
         }
@@ -417,28 +406,38 @@ export async function POST(req: NextRequest) {
 
     const finalMessages: any[] = [
       ...formattedHistory,
-      {
-        role: "user" as const,
-        content: userMessageContent,
-      },
+      { role: "user" as const, content: userMessageContent },
     ];
 
+    // Built-in tools (enable only when NO files to avoid tool+multimodal corner cases)
     const tools: Record<string, any> = {};
-
-    if (modelConfig.provider === "google" && !isImageRequest) {
+    if (modelConfig.provider === "google" && !isImageRequest && files.length === 0) {
       tools.google_search = google.tools.googleSearch({});
-
-      if (urls.length > 0) {
-        tools.url_context = google.tools.urlContext({});
-      }
+      if (urls.length > 0) tools.url_context = google.tools.urlContext({});
     }
 
     const streamConfig: any = {
       model: selectedModel,
       messages: finalMessages,
+
+      // Gemini safety settings to avoid silent blocks in vision prompts
+      ...(modelConfig.provider === "google"
+        ? {
+            providerOptions: {
+              google: {
+                safetySettings: [
+                  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                ],
+              },
+            },
+          }
+        : {}),
     };
 
-    if (!isImageRequest && Object.keys(tools).length > 0) {
+    if (Object.keys(tools).length > 0) {
       streamConfig.tools = tools;
     }
 
@@ -446,6 +445,7 @@ export async function POST(req: NextRequest) {
       streamConfig.experimental_generateImage = true;
     }
 
+    // Perplexity special-case (non-stream with sources)
     if (modelConfig.provider === "perplexity") {
       const { text, sources } = await generateText({
         model: selectedModel,
@@ -458,8 +458,8 @@ export async function POST(req: NextRequest) {
         fullText += "\n\n*Sources:*\n";
         sources.forEach((source, index) => {
           if (source.type === "source" && source.sourceType === "url") {
-            const title = source.title || source.url;
-            fullText += `${index + 1}. [${title}](${source.url})\n`;
+            const t = source.title || source.url;
+            fullText += `${index + 1}. [${t}](${source.url})\n`;
           }
         });
       }
@@ -468,103 +468,117 @@ export async function POST(req: NextRequest) {
         conversationId,
         role: "assistant",
         content: fullText,
-        model: model,
+        model,
         tokensUsed: 0,
       });
 
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(fullText));
-          controller.close();
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8",
-        },
+      return new Response(fullText, {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
       });
     }
 
-    const response = await streamText(streamConfig);
+    // Debug logs (important for verifying image/file parts are included)
+    console.log("🔍 chat request", {
+      provider: modelConfig.provider,
+      model,
+      modelId: modelConfig.modelId,
+      files: fileMetadata,
+      toolsEnabled: Object.keys(tools).length > 0,
+      lastContentType: Array.isArray(userMessageContent)
+        ? userMessageContent.map((p: any) => p.type).join(",")
+        : "text",
+    });
 
-    let full = "";
-    const finalConversationId = conversationId;
-    const finalModel = model;
-    const finalProvider = modelConfig.provider;
-    const supportsTokenUsage = modelConfig.supportsTokenUsage;
-    const userId = session.user.id;
+    const result = await streamText(streamConfig);
 
-    (async () => {
-      try {
-        for await (const chunk of response.textStream) {
-          full += chunk;
-        }
+    const encoder = new TextEncoder();
+    let fullText = "";
 
-        const responseData = await response.response;
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          for await (const chunk of result.textStream) {
+            fullText += chunk;
+            controller.enqueue(encoder.encode(chunk));
+          }
 
-        if (responseData && "experimental_attachments" in responseData) {
-          const attachments =
-            (responseData as any).experimental_attachments || [];
-
-          for (const attachment of attachments) {
-            if (attachment.contentType?.startsWith("image/")) {
-              const base64Data = attachment.content;
-              full += `\n\n![Generated Image](data:${attachment.contentType};base64,${base64Data})\n`;
+          // If image generation returns attachments, append them
+          const responseData = await result.response;
+          if (responseData && "experimental_attachments" in responseData) {
+            const attachments = (responseData as any).experimental_attachments || [];
+            for (const attachment of attachments) {
+              if (attachment.contentType?.startsWith("image/")) {
+                const base64Data = attachment.content;
+                const md = `\n\n![Generated Image](data:${attachment.contentType};base64,${base64Data})\n`;
+                fullText += md;
+                controller.enqueue(encoder.encode(md));
+              }
             }
           }
-        }
 
-        const usage = await response.usage;
-        const totalTokens = supportsTokenUsage ? usage?.totalTokens || 0 : 0;
+          controller.close();
 
-        console.log("Tokens used:", totalTokens);
+          // Usage + DB writes after streaming finishes
+          const usage = await result.usage;
+          const totalTokens = modelConfig.supportsTokenUsage
+            ? usage?.totalTokens || 0
+            : 0;
 
-        await db.insert(messages).values({
-          conversationId: finalConversationId,
-          role: "assistant",
-          content: full,
-          model: finalModel,
-          tokensUsed: totalTokens,
-        });
-
-        // Update user's token usage (only for Gemini which returns token counts)
-        if (finalProvider === "google" && totalTokens > 0) {
-          await db
-            .update(user)
-            .set({
-              tokensUsedToday: sql`${user.tokensUsedToday} + ${totalTokens}`,
-            })
-            .where(eq(user.id, userId));
-
-          console.log(`Updated user ${userId} with ${totalTokens} tokens`);
-
-          // Log token usage for analytics
-          const [updatedUser] = await db.select().from(user).where(eq(user.id, userId));
-          const tier = (updatedUser?.subscriptionTier || "free") as keyof typeof TOKEN_LIMITS;
-          const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
-          const remaining = limit - ((updatedUser?.tokensUsedToday as number) || 0);
-
-          await db.insert(tokenUsageLog).values({
-            userId: userId,
-            tokensUsed: totalTokens,
-            remainingTokens: remaining,
-            action: "message_sent",
-            metadata: { model: finalModel, provider: finalProvider },
+          console.log("✅ stream done", {
+            tokens: totalTokens,
+            preview: fullText.slice(0, 120),
           });
-        }
-      } catch (error) {
-        console.error("Error in response processing:", error);
-      }
-    })();
 
-    return response.toTextStreamResponse();
+          await db.insert(messages).values({
+            conversationId,
+            role: "assistant",
+            content: fullText,
+            model,
+            tokensUsed: totalTokens,
+          });
+
+          // Update user's token usage (Gemini only in your current logic)
+          if (modelConfig.provider === "google" && totalTokens > 0) {
+            await db
+              .update(user)
+              .set({
+                tokensUsedToday: sql`${user.tokensUsedToday} + ${totalTokens}`,
+              })
+              .where(eq(user.id, session.user.id));
+
+            const [updatedUser] = await db
+              .select()
+              .from(user)
+              .where(eq(user.id, session.user.id));
+
+            const tier = (updatedUser?.subscriptionTier || "free") as keyof typeof TOKEN_LIMITS;
+            const limit = TOKEN_LIMITS[tier]?.dailyTokens || TOKEN_LIMITS.free.dailyTokens;
+            const remaining = limit - ((updatedUser?.tokensUsedToday as number) || 0);
+
+            await db.insert(tokenUsageLog).values({
+              userId: session.user.id,
+              tokensUsed: totalTokens,
+              remainingTokens: remaining,
+              action: "message_sent",
+              metadata: { model, provider: modelConfig.provider },
+            });
+          }
+        } catch (err) {
+          console.error("❌ stream error", err);
+          controller.error(err);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
   } catch (error) {
     console.error("Error in chat:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
