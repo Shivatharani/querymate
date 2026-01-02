@@ -21,7 +21,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="AI-powered chat application with advanced features" />
       </head>
-      <body className="min-h-screen bg-background text-foreground antialiased font-sans">
+      <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

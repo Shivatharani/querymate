@@ -9,7 +9,6 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
 
-// ✅ Safe useTheme: Handles SSR undefined + forced mount
 export const useTheme = () => {
   const context = useNextTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -19,7 +18,13 @@ export const useTheme = () => {
   }, []);
 
   if (!mounted) {
-    return { theme: undefined, resolvedTheme: undefined, setTheme: () => null };
+    return { 
+      theme: undefined, 
+      resolvedTheme: undefined, 
+      setTheme: () => null,
+      systemTheme: undefined,
+      themes: ['light', 'dark', 'system']
+    };
   }
 
   return context;
