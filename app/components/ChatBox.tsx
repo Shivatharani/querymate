@@ -153,16 +153,52 @@ function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
 
 const getBundledLanguage = (lang: string): BundledLanguage => {
   const allowed: BundledLanguage[] = [
+    // Web languages
     "javascript",
     "typescript",
-    "python",
     "html",
     "css",
     "json",
+    "jsx",
+    "tsx",
+    // Systems languages
+    "c",
+    "cpp",
+    "rust",
+    "go",
+    "zig",
+    // Popular languages
+    "python",
+    "java",
+    "kotlin",
+    "swift",
+    "ruby",
+    "php",
+    "csharp",
+    // Shell/scripting
+    "bash",
+    "shell",
+    "powershell",
+    // Data/Config
+    "sql",
+    "yaml",
+    "toml",
+    "xml",
     "markdown",
+    // Other
+    "lua",
+    "r",
+    "scala",
+    "perl",
+    "groovy",
+    "dart",
+    "haskell",
+    "elixir",
+    "clojure",
   ];
-  return allowed.includes(lang as BundledLanguage)
-    ? (lang as BundledLanguage)
+  const normalized = lang.toLowerCase();
+  return allowed.includes(normalized as BundledLanguage)
+    ? (normalized as BundledLanguage)
     : ("text" as any);
 };
 
@@ -739,7 +775,20 @@ export default function ChatBox({
                                       {children}
                                     </a>
                                   ),
-                                  code({ className, children }) {
+                                  code({ className, children, node }) {
+                                    // Check if this is inside a pre (block code) vs inline code
+                                    const isInline = !className;
+                                    
+                                    if (isInline) {
+                                      // Inline code styling
+                                      return (
+                                        <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono text-black dark:text-white">
+                                          {children}
+                                        </code>
+                                      );
+                                    }
+                                    
+                                    // Block code - render with CodeBlock
                                     const match = /language-(\w+)/.exec(className || "");
                                     const codeText = String(children ?? "")
                                       .replace(/\n$/, "")
@@ -772,7 +821,10 @@ export default function ChatBox({
                                       </div>
                                     );
                                   },
-                                  pre: () => null,
+                                  pre({ children }) {
+                                    // Just pass through children - the code component handles the rendering
+                                    return <>{children}</>;
+                                  },
                                   p: ({ children, ...props }) => (
                                     <p
                                       className="mb-3 leading-relaxed text-black dark:text-white"
