@@ -1,7 +1,7 @@
 // app/api/conversations/route.ts
 import { db } from "@/lib/lib";
 import { conversations, messages } from "@/lib/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth-middleware";
 
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       .select()
       .from(conversations)
       .where(eq(conversations.userId, session.user.id))
-      .orderBy(conversations.createdAt);
+      .orderBy(desc(conversations.createdAt));
 
     return NextResponse.json({ conversations: userConversations });
   } catch (error) {
