@@ -640,13 +640,19 @@ export default function ChatBox({
     await sendChatMessage(input);
   };
 
-  const handleTextareaKeyDown = async (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (isTyping) return;
-      await sendChatMessage(input);
-    }
-  };
+const handleTextareaKeyDown = async (
+  e: KeyboardEvent<HTMLTextAreaElement>
+) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    if (isTyping || !input.trim()) return;
+
+    // lock to prevent double send
+    setIsTyping(true);
+    await sendChatMessage(input);
+  }
+};
+
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
@@ -935,7 +941,8 @@ export default function ChatBox({
             </div>
           )}
 
-          <form onSubmit={handlePromptSubmit} className="flex items-end gap-2">
+          <form onSubmit={(e) => e.preventDefault()} className="flex items-end gap-2">
+
             <div className="flex flex-1 flex-col gap-2 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-2xl shadow-sm hover:shadow-md transition-all">
               <textarea
                 value={input}
