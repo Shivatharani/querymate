@@ -579,7 +579,8 @@ export default function ChatBox({
           const convData = await convRes.json();
           const list = convData.conversations ?? [];
           if (list.length) {
-            const newest = list[list.length - 1];
+            // API returns desc(createdAt), so newest is first
+            const newest = list[0];
             setConversationId(newest.id);
           }
         }

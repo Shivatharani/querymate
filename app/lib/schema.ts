@@ -132,10 +132,10 @@ export const messages = pgTable("messages", {
     }>
   >(),
 
-  model: text("model").notNull().default("gemini-2.5-flash"),
-  tokensUsed: integer("tokens_used").notNull().default(0),
-  inputTokens: integer("input_tokens").notNull().default(0),
-  outputTokens: integer("output_tokens").notNull().default(0),
+  model: text("model").default("gemini-2.5-flash"),
+  tokensUsed: integer("tokens_used").default(0),
+  inputTokens: integer("input_tokens").default(0),
+  outputTokens: integer("output_tokens").default(0),
 
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -150,17 +150,15 @@ export const tokenUsageLog = pgTable("token_usage_log", {
   messageId: text("message_id").references(() => messages.id, {
     onDelete: "set null",
   }),
-  tokensUsed: integer("tokens_used").notNull().default(0),
-  inputTokens: integer("input_tokens").notNull().default(0),
-  outputTokens: integer("output_tokens").notNull().default(0),
-  remainingTokens: integer("remaining_tokens").notNull(),
-  dailyLimit: integer("daily_limit").notNull().default(5000),
-  subscriptionTier: text("subscription_tier")
-    .notNull()
-    .default("free"),
+  tokensUsed: integer("tokens_used").default(0),
+  inputTokens: integer("input_tokens").default(0),
+  outputTokens: integer("output_tokens").default(0),
+  remainingTokens: integer("remaining_tokens"),
+  dailyLimit: integer("daily_limit").default(5000),
+  subscriptionTier: text("subscription_tier").default("free"),
 
-  action: text("action").notNull(),
-  maxOutputTokensUsed: integer("max_output_tokens_used").notNull().default(150),
+  action: text("action"),
+  maxOutputTokensUsed: integer("max_output_tokens_used").default(150),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
