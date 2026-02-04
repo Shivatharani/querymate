@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -144,7 +143,7 @@ export default function PricingPage() {
       });
 
       setTimeout(() => {
-        router.push("/");
+        router.push("/chat");
       }, 2000);
     } catch (error) {
       console.error("Upgrade error:", error);
@@ -171,19 +170,19 @@ export default function PricingPage() {
                 <Sparkles className="w-5 h-5 text-yellow-500" />
                 <span>You now have {successModal?.tokens?.toLocaleString()} tokens per day!</span>
               </div>
-              <p className="mt-4 text-sm text-gray-500">Redirecting to home page...</p>
+              <p className="mt-4 text-sm text-gray-500">Redirecting to chat...</p>
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
 
       {/* Back Button */}
-      <Link 
-        href="/" 
+      <button 
+        onClick={() => router.push(isAuthenticated ? "/chat" : "/")}
         className="fixed top-6 left-6 z-50 p-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 dark:hover:bg-gray-700"
       >
         <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-      </Link>
+      </button>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}

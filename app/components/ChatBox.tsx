@@ -78,17 +78,17 @@ const DEFAULTMODELID =
   "gemini-2.5-flash";
 
 function TypingIndicator({ isTyping }: { isTyping: boolean }) {
-  const [loadingText, setLoadingText] = useState("Typing");
+  const [loadingText, setLoadingText] = useState("Analyzing");
   const [dots, setDots] = useState("");
 
   useEffect(() => {
     if (!isTyping) {
-      setLoadingText("Typing");
+      setLoadingText("Analyzing");
       setDots("");
       return;
     }
 
-    const texts = ["Typing", "Generating", "Processing"];
+    const texts = ["Analyzing", "Typing", "Generating", "Processing"];
     let textIndex = 0;
     let dotIndex = 0;
 
@@ -97,7 +97,7 @@ function TypingIndicator({ isTyping }: { isTyping: boolean }) {
       setDots(".".repeat(dotIndex + 1));
       textIndex = (textIndex + 1) % texts.length;
       dotIndex = (dotIndex + 1) % 4;
-    }, 800);
+    }, 700);
 
     return () => clearInterval(interval);
   }, [isTyping]);
@@ -105,13 +105,13 @@ function TypingIndicator({ isTyping }: { isTyping: boolean }) {
   if (!isTyping) return null;
 
   return (
-    <div className="flex items-start gap-3 p-4">
-      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
-        <div className="h-2.5 w-2.5 animate-ping rounded-full bg-black dark:bg-white" />
+    <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4">
+      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+        <Loader className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin text-black dark:text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="inline-flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100">
-          <span>{loadingText}</span>
+        <div className="inline-flex items-center gap-1 text-xs sm:text-sm text-gray-900 dark:text-gray-100">
+          <span className="truncate">{loadingText}</span>
           <span>{dots}</span>
         </div>
       </div>
@@ -127,12 +127,12 @@ function formatFileSize(bytes: number): string {
 
 function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
   return (
-    <div className="group flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-2 shadow-sm hover:shadow-md transition-all">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+    <div className="group flex items-center gap-1.5 sm:gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-2 shadow-sm hover:shadow-md transition-all">
+      <div className="flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
         <span className="text-xs font-medium">📎</span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-medium text-black dark:text-white">
+        <p className="truncate text-xs sm:text-sm font-medium text-black dark:text-white">
           {file.name}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -142,10 +142,10 @@ function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
       <button
         type="button"
         onClick={onRemove}
-        className="opacity-0 group-hover:opacity-100 h-7 w-7 flex-shrink-0 ml-1 flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+        className="opacity-0 group-hover:opacity-100 h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 ml-1 flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
         aria-label={`Remove ${file.name}`}
       >
-        <XIcon className="h-3 w-3 text-gray-900 dark:text-gray-100" />
+        <XIcon className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-900 dark:text-gray-100" />
       </button>
     </div>
   );
@@ -153,7 +153,6 @@ function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
 
 const getBundledLanguage = (lang: string): BundledLanguage => {
   const allowed: BundledLanguage[] = [
-    // Web languages
     "javascript",
     "typescript",
     "html",
@@ -161,13 +160,11 @@ const getBundledLanguage = (lang: string): BundledLanguage => {
     "json",
     "jsx",
     "tsx",
-    // Systems languages
     "c",
     "cpp",
     "rust",
     "go",
     "zig",
-    // Popular languages
     "python",
     "java",
     "kotlin",
@@ -175,17 +172,14 @@ const getBundledLanguage = (lang: string): BundledLanguage => {
     "ruby",
     "php",
     "csharp",
-    // Shell/scripting
     "bash",
     "shell",
     "powershell",
-    // Data/Config
     "sql",
     "yaml",
     "toml",
     "xml",
     "markdown",
-    // Other
     "lua",
     "r",
     "scala",
@@ -210,21 +204,21 @@ function CompactTokenStatus({ tokenStatus }: { tokenStatus: TokenStatus | null }
   if (!tokenStatus) return null;
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 bg-gray-50 dark:bg-gray-900">
-      <div className="flex items-center gap-1.5 min-w-0">
-        <Crown className="h-3.5 w-3.5 text-gray-900 dark:text-gray-100" />
+    <div className="flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+        <Crown className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-900 dark:text-gray-100 flex-shrink-0" />
         <span className="truncate text-xs font-semibold text-gray-900 dark:text-gray-100">
           {tokensRemaining.toLocaleString()}/{tokensLimit.toLocaleString()}
         </span>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="h-1.5 w-16 rounded-full bg-gray-300 dark:bg-gray-700">
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="h-1.5 w-12 sm:w-16 rounded-full bg-gray-300 dark:bg-gray-700 flex-shrink-0">
           <div
             className="h-1.5 rounded-full transition-all bg-black dark:bg-white"
             style={{ width: `${Math.min(Math.max(percentage, 5), 100)}%` }}
           />
         </div>
-        <span className="w-8 text-right font-mono text-xs text-gray-900 dark:text-gray-100">
+        <span className="w-7 sm:w-8 text-right font-mono text-xs text-gray-900 dark:text-gray-100 flex-shrink-0">
           {percentage}%
         </span>
       </div>
@@ -234,21 +228,21 @@ function CompactTokenStatus({ tokenStatus }: { tokenStatus: TokenStatus | null }
 
 function SourcesList({ sources }: { sources: Array<{ title: string; url: string }> }) {
   return (
-    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-1.5 h-1.5 bg-black dark:bg-white rounded-full" />
-        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <div className="w-1.5 h-1.5 bg-black dark:bg-white rounded-full flex-shrink-0" />
+        <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
           Sources
         </span>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-1 sm:space-y-1.5">
         {sources.map((source, index) => (
           <a
             key={index}
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-black dark:hover:border-white transition-all text-sm truncate text-gray-900 dark:text-gray-100"
+            className="block p-2 sm:p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-black dark:hover:border-white transition-all text-xs sm:text-sm truncate text-gray-900 dark:text-gray-100"
           >
             {source.title}
           </a>
@@ -281,6 +275,7 @@ export default function ChatBox({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [showTokenDepletedModal, setShowTokenDepletedModal] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -303,7 +298,6 @@ export default function ChatBox({
 
   const checkTokensBeforeSend = async (): Promise<boolean> => {
     await fetchTokenStatus();
-    // Note: tokenStatus state update is async; allow send if not loaded yet.
     if (!tokenStatus) return true;
 
     const percentage = Math.round(tokenStatus.tokensPercentage);
@@ -333,7 +327,6 @@ export default function ChatBox({
     fetchTokenStatus();
     const interval = setInterval(fetchTokenStatus, 30000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -493,7 +486,6 @@ export default function ChatBox({
       setFiles((prev) => [...prev, ...validFiles]);
     }
 
-    // allow selecting same file again
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -511,12 +503,11 @@ export default function ChatBox({
 
     const trimmed = text.trim();
 
-    // ✅ Allow “file-only” messages (important for PDFs/images)
     if ((!trimmed && files.length === 0) || isTyping) return;
 
     const userMessage: ChatMessage = {
       role: "user",
-      content: trimmed || "[Attached file]", // visible user bubble even if no text
+      content: trimmed || "[Attached file]",
       files:
         files.length > 0
           ? files.map((f) => ({ name: f.name, type: f.type, size: f.size }))
@@ -524,11 +515,10 @@ export default function ChatBox({
     };
 
     setMessages((prev) => [...prev, userMessage]);
-
     setInput("");
     setIsTyping(true);
+    setIsSending(true);
 
-    // Keep a snapshot of files to send (because state is cleared)
     const filesToSend = [...files];
     setFiles([]);
 
@@ -538,10 +528,9 @@ export default function ChatBox({
     formData.append("searchEnabled", searchEnabled.toString());
     if (conversationId) formData.append("conversationId", conversationId);
 
-    // ✅ CRITICAL FIX: must match backend `key.startsWith("file_")`
     filesToSend.forEach((file, index) => {
       formData.append(`file_${index}`, file, file.name);
-    }); // FormData.append(name, file, filename) is standard. [web:68]
+    });
 
     try {
       const res = await fetch("/api/chat", {
@@ -569,7 +558,6 @@ export default function ChatBox({
         throw new Error(errorData?.error || `Request failed (${res.status})`);
       }
 
-      // If it was a brand new conversation, refresh sidebar + set newest id
       if (!conversationId) {
         mutateConversations();
         const convRes = await fetch("/api/conversations", {
@@ -579,7 +567,6 @@ export default function ChatBox({
           const convData = await convRes.json();
           const list = convData.conversations ?? [];
           if (list.length) {
-            // API returns desc(createdAt), so newest is first
             const newest = list[0];
             setConversationId(newest.id);
           }
@@ -609,7 +596,6 @@ export default function ChatBox({
           });
         }
       } else {
-        // fallback (shouldn't happen with streaming)
         const text = await res.text();
         setMessages((prev) => [...prev, { role: "assistant", content: text }]);
       }
@@ -631,6 +617,7 @@ export default function ChatBox({
       ]);
     } finally {
       setIsTyping(false);
+      setIsSending(false);
     }
   }
 
@@ -640,19 +627,17 @@ export default function ChatBox({
     await sendChatMessage(input);
   };
 
-const handleTextareaKeyDown = async (
-  e: KeyboardEvent<HTMLTextAreaElement>
-) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    if (isTyping || !input.trim()) return;
+  const handleTextareaKeyDown = async (
+    e: KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (isTyping || !input.trim()) return;
 
-    // lock to prevent double send
-    setIsTyping(true);
-    await sendChatMessage(input);
-  }
-};
-
+      setIsTyping(true);
+      await sendChatMessage(input);
+    }
+  };
 
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
@@ -673,13 +658,13 @@ const handleTextareaKeyDown = async (
       <CompactTokenStatus tokenStatus={tokenStatus} />
 
       <Dialog open={showTokenDepletedModal} onOpenChange={setShowTokenDepletedModal}>
-        <DialogContent className="max-w-sm rounded-2xl">
+        <DialogContent className="max-w-sm rounded-2xl mx-4 sm:mx-0">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-              <AlertCircle className="h-6 w-6" />
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
+              <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
               Token Limit Reached
             </DialogTitle>
-            <DialogDescription className="text-sm">
+            <DialogDescription className="text-xs sm:text-sm">
               You've used all your daily tokens. Upgrade for unlimited access or wait for reset.
             </DialogDescription>
           </DialogHeader>
@@ -687,7 +672,7 @@ const handleTextareaKeyDown = async (
             <Button
               variant="outline"
               onClick={() => setShowTokenDepletedModal(false)}
-              className="w-full"
+              className="w-full text-xs sm:text-sm"
             >
               Wait for Reset
             </Button>
@@ -696,7 +681,7 @@ const handleTextareaKeyDown = async (
                 setShowTokenDepletedModal(false);
                 router.push("/pricing");
               }}
-              className="w-full bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100"
+              className="w-full bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 text-xs sm:text-sm"
             >
               Upgrade Plan
             </Button>
@@ -708,25 +693,25 @@ const handleTextareaKeyDown = async (
         <div className="h-full w-full overflow-auto">
           <div
             ref={scrollRootRef}
-            className="flex min-h-full w-full flex-col gap-4 p-4 sm:p-6 lg:p-8 pb-20 lg:pb-24"
+            className="flex min-h-full w-full flex-col gap-3 sm:gap-4 p-3 sm:p-4 md:p-6 lg:p-8 pb-20 lg:pb-24"
           >
             {showCenterPrompt ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center px-4 max-w-md mx-auto">
-                <div className="flex flex-col items-center gap-3">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white">
+              <div className="flex flex-1 flex-col items-center justify-center gap-6 sm:gap-8 text-center px-3 sm:px-4 max-w-md mx-auto">
+                <div className="flex flex-col items-center gap-2 sm:gap-3">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white leading-tight">
                     What would you like to ask QueryMate?
                   </h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                     Ask anything, get instant answers.
                   </p>
                 </div>
 
-                <div className="w-full flex flex-wrap gap-2.5 justify-center max-w-lg">
+                <div className="w-full flex flex-wrap gap-2 sm:gap-2.5 justify-center max-w-lg">
                   {suggestions.map((suggestion) => (
                     <button
                       key={suggestion}
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="px-4 py-2.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-sm transition-all duration-200 backdrop-blur-sm flex-shrink-0 min-w-[100px] max-w-[200px] text-gray-900 dark:text-gray-100"
+                      className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg sm:rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-sm transition-all duration-200 backdrop-blur-sm flex-shrink-0 min-w-fit text-gray-900 dark:text-gray-100"
                       type="button"
                     >
                       {suggestion}
@@ -740,21 +725,21 @@ const handleTextareaKeyDown = async (
                   <div key={i} className="flex w-full">
                     {m.role === "user" ? (
                       <div className="flex w-full justify-end">
-                        <div className="flex flex-col items-end max-w-xs sm:max-w-md lg:max-w-lg">
-                          <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl rounded-br-md px-4 py-3 max-w-full border border-gray-300 dark:border-gray-600">
-                            <div className="prose prose-sm max-w-none text-black dark:text-white leading-relaxed break-words">
+                        <div className="flex flex-col items-end max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+                          <div className="bg-gray-200 dark:bg-gray-800 rounded-2xl rounded-br-md px-3 sm:px-4 py-2 sm:py-3 max-w-full border border-gray-300 dark:border-gray-600">
+                            <div className="prose prose-sm max-w-none text-black dark:text-white leading-relaxed break-words text-xs sm:text-sm">
                               {m.content}
                             </div>
 
                             {m.files && m.files.length > 0 && (
-                              <div className="mt-2.5 flex flex-wrap gap-1.5 pt-1.5 border-t border-gray-300 dark:border-gray-600">
+                              <div className="mt-2 sm:mt-2.5 flex flex-wrap gap-1 sm:gap-1.5 pt-1.5 border-t border-gray-300 dark:border-gray-600">
                                 {m.files.map((file, idx) => (
                                   <div
                                     key={idx}
-                                    className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-600 text-xs"
+                                    className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-600 text-xs"
                                   >
                                     <span className="text-xs">📎</span>
-                                    <span className="truncate max-w-32 text-gray-900 dark:text-gray-100">
+                                    <span className="truncate max-w-20 sm:max-w-32 text-gray-900 dark:text-gray-100 text-xs">
                                       {file.name}
                                     </span>
                                   </div>
@@ -766,9 +751,9 @@ const handleTextareaKeyDown = async (
                       </div>
                     ) : (
                       <div className="flex w-full">
-                        <div className="flex flex-col max-w-xs sm:max-w-md lg:max-w-2xl">
-                          <div className="bg-white dark:bg-gray-800 rounded-2xl px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                            <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <div className="flex flex-col w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl">
+                          <div className="bg-white dark:bg-gray-800 rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div className="prose prose-sm max-w-none break-words whitespace-pre-wrap dark:prose-invert text-xs sm:text-sm">
                               <ReactMarkdown
                                 components={{
                                   a: ({ children, href, ...props }) => (
@@ -783,19 +768,16 @@ const handleTextareaKeyDown = async (
                                     </a>
                                   ),
                                   code({ className, children, node }) {
-                                    // Check if this is inside a pre (block code) vs inline code
                                     const isInline = !className;
-                                    
+
                                     if (isInline) {
-                                      // Inline code styling
                                       return (
-                                        <code className="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-sm font-mono text-black dark:text-white">
+                                        <code className="bg-gray-200 dark:bg-gray-700 px-1 sm:px-1.5 py-0.5 rounded text-xs sm:text-sm font-mono text-black dark:text-white">
                                           {children}
                                         </code>
                                       );
                                     }
-                                    
-                                    // Block code - render with CodeBlock
+
                                     const match = /language-(\w+)/.exec(className || "");
                                     const codeText = String(children ?? "")
                                       .replace(/\n$/, "")
@@ -804,9 +786,9 @@ const handleTextareaKeyDown = async (
                                     const bundledLang = getBundledLanguage(lang);
 
                                     return (
-                                      <div className="my-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 shadow-sm overflow-hidden">
-                                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                                          <span className="text-xs font-semibold uppercase tracking-wide text-black dark:text-white">
+                                      <div className="my-3 sm:my-4 rounded-lg sm:rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 shadow-sm overflow-hidden">
+                                        <div className="flex items-center justify-between px-2.5 sm:px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 gap-2">
+                                          <span className="text-xs font-semibold uppercase tracking-wide text-black dark:text-white truncate">
                                             {lang}
                                           </span>
                                           <CodeBlockCopyButton
@@ -814,27 +796,26 @@ const handleTextareaKeyDown = async (
                                               if (!navigator.clipboard) return;
                                               await navigator.clipboard.writeText(codeText);
                                             }}
-                                            className="h-7 w-7 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition-all"
+                                            className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition-all flex-shrink-0"
                                           />
                                         </div>
-                                        <div className="max-h-80 overflow-auto">
+                                        <div className="max-h-64 sm:max-h-80 overflow-auto">
                                           <CodeBlock
                                             code={codeText}
                                             language={bundledLang}
                                             showLineNumbers={true}
-                                            className="text-xs [&>pre]:p-4"
+                                            className="text-xs [&>pre]:p-2 sm:[&>pre]:p-4"
                                           />
                                         </div>
                                       </div>
                                     );
                                   },
                                   pre({ children }) {
-                                    // Just pass through children - the code component handles the rendering
                                     return <>{children}</>;
                                   },
                                   p: ({ children, ...props }) => (
                                     <p
-                                      className="mb-3 leading-relaxed text-black dark:text-white"
+                                      className="mb-2 sm:mb-3 leading-relaxed text-black dark:text-white"
                                       {...props}
                                     >
                                       {children}
@@ -842,7 +823,7 @@ const handleTextareaKeyDown = async (
                                   ),
                                   ul: ({ children, ...props }) => (
                                     <ul
-                                      className="list-disc ml-6 space-y-1.5 mb-3 text-gray-900 dark:text-gray-100"
+                                      className="list-disc ml-4 sm:ml-6 space-y-1 sm:space-y-1.5 mb-2 sm:mb-3 text-gray-900 dark:text-gray-100"
                                       {...props}
                                     >
                                       {children}
@@ -850,7 +831,7 @@ const handleTextareaKeyDown = async (
                                   ),
                                   ol: ({ children, ...props }) => (
                                     <ol
-                                      className="list-decimal ml-6 space-y-1.5 mb-3 text-gray-900 dark:text-gray-100"
+                                      className="list-decimal ml-4 sm:ml-6 space-y-1 sm:space-y-1.5 mb-2 sm:mb-3 text-gray-900 dark:text-gray-100"
                                       {...props}
                                     >
                                       {children}
@@ -858,7 +839,7 @@ const handleTextareaKeyDown = async (
                                   ),
                                   li: ({ children, ...props }) => (
                                     <li
-                                      className="text-sm leading-relaxed text-gray-900 dark:text-gray-100"
+                                      className="text-xs sm:text-sm leading-relaxed text-gray-900 dark:text-gray-100"
                                       {...props}
                                     >
                                       {children}
@@ -866,7 +847,7 @@ const handleTextareaKeyDown = async (
                                   ),
                                   h1: ({ children, ...props }) => (
                                     <h1
-                                      className="text-xl font-bold mt-6 mb-3 text-black dark:text-white"
+                                      className="text-lg sm:text-xl font-bold mt-4 sm:mt-6 mb-2 sm:mb-3 text-black dark:text-white"
                                       {...props}
                                     >
                                       {children}
@@ -874,7 +855,7 @@ const handleTextareaKeyDown = async (
                                   ),
                                   h2: ({ children, ...props }) => (
                                     <h2
-                                      className="text-lg font-bold mt-5 mb-2.5 text-black dark:text-white"
+                                      className="text-base sm:text-lg font-bold mt-3 sm:mt-5 mb-2 text-black dark:text-white"
                                       {...props}
                                     >
                                       {children}
@@ -882,7 +863,7 @@ const handleTextareaKeyDown = async (
                                   ),
                                   h3: ({ children, ...props }) => (
                                     <h3
-                                      className="text-base font-bold mt-4 mb-2 text-black dark:text-white"
+                                      className="text-sm sm:text-base font-bold mt-3 sm:mt-4 mb-1.5 sm:mb-2 text-black dark:text-white"
                                       {...props}
                                     >
                                       {children}
@@ -898,14 +879,14 @@ const handleTextareaKeyDown = async (
                               <SourcesList sources={m.sources} />
                             )}
 
-                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
                               <button
                                 type="button"
                                 onClick={() => handleCopyAssistantMessage(m.content)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-xs font-medium text-black dark:text-white border border-gray-300 dark:border-gray-600 transition-all"
+                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg sm:rounded-xl text-xs font-medium text-black dark:text-white border border-gray-300 dark:border-gray-600 transition-all"
                               >
-                                <CopyIcon className="h-3 w-3" />
-                                Copy
+                                <CopyIcon className="h-3 w-3 flex-shrink-0" />
+                                <span className="hidden sm:inline">Copy</span>
                               </button>
                             </div>
                           </div>
@@ -914,6 +895,7 @@ const handleTextareaKeyDown = async (
                     )}
                   </div>
                 ))}
+
                 <TypingIndicator isTyping={isTyping} />
               </>
             )}
@@ -921,10 +903,10 @@ const handleTextareaKeyDown = async (
         </div>
       </div>
 
-      <div className="border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4 sm:px-6 sticky bottom-0">
+      <div className="border-t border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 sm:px-4 md:px-6 py-3 sm:py-4 sticky bottom-0">
         <div className="mx-auto max-w-2xl w-full">
           {files.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
               {files.map((file, index) => (
                 <FilePreview
                   key={index}
@@ -936,14 +918,13 @@ const handleTextareaKeyDown = async (
           )}
 
           {errorMessage && (
-            <div className="mb-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-black dark:text-white">
+            <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs sm:text-sm text-black dark:text-white">
               {errorMessage}
             </div>
           )}
 
           <form onSubmit={(e) => e.preventDefault()} className="flex items-end gap-2">
-
-            <div className="flex flex-1 flex-col gap-2 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-2xl shadow-sm hover:shadow-md transition-all">
+            <div className="flex flex-1 flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.currentTarget.value)}
@@ -951,7 +932,7 @@ const handleTextareaKeyDown = async (
                 placeholder={showCenterPrompt ? "Try asking a question..." : "Type your message..."}
                 rows={1}
                 disabled={isTyping}
-                className="w-full resize-none bg-transparent border-none p-0 text-sm font-normal text-black dark:text-white outline-none placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 min-h-[20px] max-h-24 leading-relaxed"
+                className="w-full resize-none bg-transparent border-none p-0 text-xs sm:text-sm font-normal text-black dark:text-white outline-none placeholder-gray-500 dark:placeholder-gray-400 disabled:opacity-50 min-h-[20px] max-h-24 leading-relaxed"
               />
 
               <input
@@ -963,33 +944,36 @@ const handleTextareaKeyDown = async (
                 accept="image/*,.pdf"
               />
 
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                <div className="flex items-center justify-center gap-1 sm:gap-1.5 flex-shrink-0">
                   <button
                     type="button"
                     onClick={handleFileUploadClick}
                     disabled={isTyping}
-                    className="h-10 w-10 rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all disabled:opacity-50 text-gray-900 dark:text-gray-100"
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all disabled:opacity-50 text-gray-900 dark:text-gray-100"
                     aria-label="Attach file"
                   >
-                    <span className="text-lg">+</span>
+                    <span className="text-xl font-semibold leading-none flex items-center justify-center relative -top-[4px]">
+  +
+</span>
+
                   </button>
 
                   <button
                     type="button"
                     onClick={toggleVoiceInput}
                     disabled={!speechSupported || isTyping}
-                    className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-sm transition-all disabled:opacity-50 ${
+                    className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm transition-all disabled:opacity-50 ${
                       isListening
-                        ? "bg-black dark:bg-white border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+                        ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
                         : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
                     }`}
                     aria-label={isListening ? "Stop voice input" : "Start voice input"}
                   >
                     {isListening ? (
-                      <MicOffIcon className="h-4 w-4" />
+                      <MicOffIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     ) : (
-                      <MicIcon className="h-4 w-4" />
+                      <MicIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     )}
                   </button>
 
@@ -997,14 +981,14 @@ const handleTextareaKeyDown = async (
                     type="button"
                     onClick={() => setSearchEnabled(!searchEnabled)}
                     disabled={isTyping}
-                    className={`h-10 px-3 rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5 ${
+                    className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${
                       searchEnabled
-                        ? "bg-black dark:bg-white border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+                        ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
                         : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
                     }`}
                   >
-                    <span>🔍</span>
-                    <span>{searchEnabled ? "Search ON" : "Search"}</span>
+                    <span className="text-sm">🔍</span>
+                    <span className="hidden sm:inline text-xs">{searchEnabled ? "On" : "Search"}</span>
                   </button>
 
                   <PromptInputSelect
@@ -1012,15 +996,17 @@ const handleTextareaKeyDown = async (
                     onValueChange={setSelectedModel}
                     disabled={isTyping}
                   >
-                    <PromptInputSelectTrigger className="h-10 w-28 rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2.5 shadow-sm hover:shadow-md text-xs font-medium text-gray-900 dark:text-gray-100">
-                      Model
+                    <PromptInputSelectTrigger className="h-8 sm:h-10 w-fit rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 sm:px-2.5 shadow-sm hover:shadow-md text-xs font-medium text-gray-900 dark:text-gray-100 truncate max-w-[80px] sm:max-w-[120px]">
+                      <span className="truncate text-xs">
+                        {MODELS[selectedModel]?.name ?? selectedModel}
+                      </span>
                     </PromptInputSelectTrigger>
-                    <PromptInputSelectContent className="w-44">
+                    <PromptInputSelectContent className="w-40 sm:w-44">
                       {PROMPTMODELOPTIONS.map((m) => (
                         <PromptInputSelectItem
                           key={m.id}
                           value={m.id}
-                          className="text-xs py-2"
+                          className="text-xs py-1.5 sm:py-2"
                         >
                           {m.name}
                         </PromptInputSelectItem>
@@ -1031,29 +1017,24 @@ const handleTextareaKeyDown = async (
 
                 <button
                   type="submit"
-                  // ✅ allow file-only send
                   disabled={isTyping || (!input.trim() && files.length === 0)}
-                  className={`h-12 px-4 rounded-xl flex items-center gap-2 font-semibold transition-all shadow-lg ${
+                  className={`h-8 sm:h-12 px-2 sm:px-4 rounded-lg sm:rounded-xl flex items-center justify-center gap-1 sm:gap-2 font-semibold transition-all shadow-lg flex-shrink-0 ${
                     isTyping || (!input.trim() && files.length === 0)
                       ? "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
                       : "bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-                  } min-w-[56px]`}
+                  } min-w-fit`}
                   aria-label="Send message"
                 >
-                  {isTyping ? (
-                    <Loader className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <CornerDownLeftIcon className="h-4 w-4" />
-                      <span className="hidden sm:inline">Send</span>
-                    </>
-                  )}
+                  <>
+                    <CornerDownLeftIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline text-xs sm:text-sm">Send</span>
+                  </>
                 </button>
               </div>
             </div>
           </form>
 
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3 pt-2 border-t border-gray-300 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2 sm:mt-3 pt-2 sm:pt-2 border-t border-gray-300 dark:border-gray-700">
             QueryMate AI may make mistakes. Verify important information.
           </p>
         </div>
