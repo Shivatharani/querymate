@@ -630,22 +630,21 @@ export default function ChatBox({
     }
   }
 
-  const handlePromptSubmit = async (event?: FormEvent<HTMLFormElement>) => {
-    event?.preventDefault();
-    if (isTyping) return;
-    await sendChatMessage(input);
-  };
+ const handlePromptSubmit = async (event?: FormEvent<HTMLFormElement>) => {
+  event?.preventDefault();
+  if (isTyping || (!input.trim() && files.length === 0)) return;
+  await sendChatMessage(input);
+};
+
 
   const handleTextareaKeyDown = async (
     e: KeyboardEvent<HTMLTextAreaElement>
   ) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (isTyping || !input.trim()) return;
+  e.preventDefault();
+  handlePromptSubmit();
+}
 
-      setIsTyping(true);
-      await sendChatMessage(input);
-    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -954,7 +953,8 @@ export default function ChatBox({
             </div>
           )}
 
-          <form onSubmit={(e) => e.preventDefault()} className="flex items-end gap-2">
+          <form onSubmit={handlePromptSubmit} className="flex items-end gap-2">
+
             <div className="flex flex-1 flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all">
               <textarea
                 value={input}
