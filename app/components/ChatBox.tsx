@@ -276,6 +276,7 @@ export default function ChatBox({
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [showTokenDepletedModal, setShowTokenDepletedModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
+const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -643,15 +644,22 @@ export default function ChatBox({
     setInput(suggestion);
   };
 
-  const handleCopyAssistantMessage = async (content: string) => {
-    if (!navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(content);
-      toast.success("Copied to clipboard!");
-    } catch (err) {
-      console.error("Failed to copy", err);
-    }
-  };
+  const handleCopyAssistantMessage = async (content: string, index: number) => {
+  if (!navigator.clipboard) return;
+
+  try {
+    await navigator.clipboard.writeText(content);
+    setCopiedMessageIndex(index);
+
+    // reset after 1.5s (ChatGPT behavior)
+    setTimeout(() => {
+      setCopiedMessageIndex(null);
+    }, 1500);
+  } catch (err) {
+    console.error("Failed to copy", err);
+  }
+};
+
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-white dark:bg-gray-950">
@@ -880,14 +888,24 @@ export default function ChatBox({
                             )}
 
                             <div className="flex items-center gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
-                              <button
-                                type="button"
-                                onClick={() => handleCopyAssistantMessage(m.content)}
-                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg sm:rounded-xl text-xs font-medium text-black dark:text-white border border-gray-300 dark:border-gray-600 transition-all"
-                              >
-                                <CopyIcon className="h-3 w-3 flex-shrink-0" />
-                                <span className="hidden sm:inline">Copy</span>
-                              </button>
+                             <button
+  type="button"
+  onClick={() => handleCopyAssistantMessage(m.content, i)}
+  className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg sm:rounded-xl text-xs font-medium text-black dark:text-white border border-gray-300 dark:border-gray-600 transition-all"
+>
+  {copiedMessageIndex === i ? (
+    <>
+      <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
+      <span className="hidden sm:inline">Copied</span>
+    </>
+  ) : (
+    <>
+      <CopyIcon className="h-3 w-3 flex-shrink-0" />
+      <span className="hidden sm:inline">Copy</span>
+    </>
+  )}
+</button>
+
                             </div>
                           </div>
                         </div>
@@ -953,7 +971,7 @@ export default function ChatBox({
                     className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all disabled:opacity-50 text-gray-900 dark:text-gray-100"
                     aria-label="Attach file"
                   >
-                    <span className="text-xl font-semibold leading-none flex items-center justify-center relative -top-[4px]">
+                    <span className="text-xl font-semibold leading-none flex items-center justify-center relative -top-[4px]"> 
   +
 </span>
 
