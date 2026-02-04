@@ -454,7 +454,7 @@ export default function ChatSidebar({
                   {usage.subscriptionTier === "pro-max" ? "Pro Max" : usage.subscriptionTier}
                 </span>
               </div>
-              {usage.subscriptionTier === "free" && (
+              {usage.subscriptionTier !== "pro-max" && (
                 <button
                   onClick={() => router.push("/pricing")}
                   className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"

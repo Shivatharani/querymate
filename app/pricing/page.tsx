@@ -178,7 +178,7 @@ export default function PricingPage() {
 
       {/* Back Button */}
       <button 
-        onClick={() => router.push(isAuthenticated ? "/chat" : "/")}
+        onClick={() => router.back()}
         className="fixed top-6 left-6 z-50 p-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 dark:hover:bg-gray-700"
       >
         <ArrowLeft className="h-5 w-5 text-gray-700 dark:text-gray-300" />

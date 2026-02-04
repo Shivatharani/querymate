@@ -276,7 +276,8 @@ export default function ChatBox({
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [showTokenDepletedModal, setShowTokenDepletedModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
-const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
+  const [tokenWarningShown, setTokenWarningShown] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -302,23 +303,30 @@ const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null
     if (!tokenStatus) return true;
 
     const percentage = Math.round(tokenStatus.tokensPercentage);
+    
+    // Show token depleted modal when 100% reached for ALL users (free and pro)
     if (tokenStatus.tokensRemaining <= 0 || percentage >= 100) {
       setShowTokenDepletedModal(true);
       return false;
     }
 
-    if (percentage >= 90) {
+    // Show warning toast at 90% for ALL users (free and pro)
+    if (percentage >= 90 && !tokenWarningShown) {
+      setTokenWarningShown(true);
       toast.warning(
-        `High token usage! ${percentage}% used, ${tokenStatus.tokensRemaining} tokens left`,
+        `High token usage! ${percentage}% used, ${tokenStatus.tokensRemaining} tokens remaining`,
         {
           id: "tokens-high-popup",
-          duration: 5000,
+          duration: 6000,
           action: {
             label: "Upgrade",
             onClick: () => router.push("/pricing"),
           },
         },
       );
+      
+      // Reset flag after notification so it can show again
+      setTimeout(() => setTokenWarningShown(false), 6000);
     }
 
     return true;
@@ -645,35 +653,37 @@ const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null
   };
 
   const handleCopyAssistantMessage = async (content: string, index: number) => {
-  if (!navigator.clipboard) return;
+    if (!navigator.clipboard) return;
 
-  try {
-    await navigator.clipboard.writeText(content);
-    setCopiedMessageIndex(index);
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedMessageIndex(index);
 
-    // reset after 1.5s (ChatGPT behavior)
-    setTimeout(() => {
-      setCopiedMessageIndex(null);
-    }, 1500);
-  } catch (err) {
-    console.error("Failed to copy", err);
-  }
-};
-
+      // reset after 1.5s (ChatGPT behavior)
+      setTimeout(() => {
+        setCopiedMessageIndex(null);
+      }, 1500);
+    } catch (err) {
+      console.error("Failed to copy", err);
+    }
+  };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-white dark:bg-gray-950">
       <CompactTokenStatus tokenStatus={tokenStatus} />
 
+      {/* Token Depleted Modal - Shows for ALL users (Free and Pro) */}
       <Dialog open={showTokenDepletedModal} onOpenChange={setShowTokenDepletedModal}>
         <DialogContent className="max-w-sm rounded-2xl mx-4 sm:mx-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
-              <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+              <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 text-red-500" />
               Token Limit Reached
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              You've used all your daily tokens. Upgrade for unlimited access or wait for reset.
+              {tokenStatus?.subscriptionTier === "pro"
+                ? "You've reached your monthly token limit. Upgrade to a higher plan for more tokens or wait for your next billing cycle."
+                : "You've used all your daily tokens. Upgrade to a paid plan or wait for reset."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col gap-2">
@@ -682,7 +692,9 @@ const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null
               onClick={() => setShowTokenDepletedModal(false)}
               className="w-full text-xs sm:text-sm"
             >
-              Wait for Reset
+              {tokenStatus?.subscriptionTier === "pro"
+                ? "Close"
+                : "Wait for Reset"}
             </Button>
             <Button
               onClick={() => {
@@ -691,7 +703,9 @@ const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null
               }}
               className="w-full bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 text-xs sm:text-sm"
             >
-              Upgrade Plan
+              {tokenStatus?.subscriptionTier === "pro"
+                ? "Upgrade Plan"
+                : "Get Pro Plan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -888,24 +902,23 @@ const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null
                             )}
 
                             <div className="flex items-center gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
-                             <button
-  type="button"
-  onClick={() => handleCopyAssistantMessage(m.content, i)}
-  className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg sm:rounded-xl text-xs font-medium text-black dark:text-white border border-gray-300 dark:border-gray-600 transition-all"
->
-  {copiedMessageIndex === i ? (
-    <>
-      <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
-      <span className="hidden sm:inline">Copied</span>
-    </>
-  ) : (
-    <>
-      <CopyIcon className="h-3 w-3 flex-shrink-0" />
-      <span className="hidden sm:inline">Copy</span>
-    </>
-  )}
-</button>
-
+                              <button
+                                type="button"
+                                onClick={() => handleCopyAssistantMessage(m.content, i)}
+                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg sm:rounded-xl text-xs font-medium text-black dark:text-white border border-gray-300 dark:border-gray-600 transition-all"
+                              >
+                                {copiedMessageIndex === i ? (
+                                  <>
+                                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
+                                    <span className="hidden sm:inline">Copied</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <CopyIcon className="h-3 w-3 flex-shrink-0" />
+                                    <span className="hidden sm:inline">Copy</span>
+                                  </>
+                                )}
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -971,10 +984,9 @@ const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null
                     className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all disabled:opacity-50 text-gray-900 dark:text-gray-100"
                     aria-label="Attach file"
                   >
-                    <span className="text-xl font-semibold leading-none flex items-center justify-center relative -top-[4px]"> 
-  +
-</span>
-
+                    <span className="text-xl font-semibold leading-none flex items-center justify-center relative -top-[4px]">
+                      +
+                    </span>
                   </button>
 
                   <button
