@@ -150,6 +150,7 @@ export async function POST(req: NextRequest) {
     const message = (formData.get("message") as string) || "";
     const title = formData.get("title") as string | null;
     const model = (formData.get("model") as string) || "gemini-2.5-flash";
+    const useCanvas = formData.get("useCanvas") === "true";
 
     const files: File[] = [];
     for (const [key, value] of formData.entries()) {
@@ -404,7 +405,40 @@ export async function POST(req: NextRequest) {
 
     const selectedModel = getAIModel(modelConfig);
 
+    // Canvas mode system prompt - instructs AI to generate complete, standalone code
+    const canvasSystemPrompt = useCanvas
+      ? `You are in Canvas Mode. When generating code:
+
+1. ALWAYS provide a SINGLE, COMPLETE, SELF-CONTAINED code block that can run immediately
+2. Include ALL necessary code in ONE code block - no separate files
+3. For React components: include inline styles or use Tailwind CSS classes (CDN is available)
+4. DO NOT split code across multiple blocks - everything must be in one block
+5. Include all imports, component definitions, and exports in the same block
+6. For web apps: create a single component named 'App', 'Main', 'Component', 'Home', or 'Page'
+7. Use React hooks directly: useState, useEffect, useCallback, useRef are available globally
+8. Keep explanations brief - focus on providing working, runnable code
+9. For Python: include all necessary imports and make the code self-contained
+10. The code should be ready to execute without any modifications
+
+Example format for React:
+\`\`\`jsx
+function App() {
+  const [state, setState] = useState(initialValue);
+  // ... component logic
+  return (
+    <div className="...">
+      {/* Complete UI */}
+    </div>
+  );
+}
+\`\`\`
+`
+      : null;
+
     const finalMessages: any[] = [
+      ...(canvasSystemPrompt
+        ? [{ role: "system" as const, content: canvasSystemPrompt }]
+        : []),
       ...formattedHistory,
       { role: "user" as const, content: userMessageContent },
     ];

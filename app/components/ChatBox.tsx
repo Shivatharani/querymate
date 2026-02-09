@@ -16,8 +16,14 @@ import {
   CopyIcon,
   AlertCircle,
   Crown,
+  LayoutIcon,
+  EyeIcon,
 } from "lucide-react";
 import { mutateConversations, mutateUsage } from "./ChatSidebar";
+import { CanvasProvider, useCanvas } from "./CanvasContext";
+import CodeCanvas, { ResizableSplit } from "./CodeCanvas";
+import { Artifact, ConsoleLog, ExecutionResult } from "@/lib/playground/types";
+import { isCanvasLanguage } from "@/lib/playground/utils";
 import { MODELS, MODEL_GROUPS, type Provider } from "@/lib/models";
 import { Loader } from "@/components/ai-elements/loader";
 import { CodeBlock, CodeBlockCopyButton } from "@/components/ai-elements/code-block";
@@ -279,12 +285,50 @@ export default function ChatBox({
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
   const [tokenWarningShown, setTokenWarningShown] = useState(false);
 
+  // Canvas mode state
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
+  const [canvasArtifact, setCanvasArtifact] = useState<Artifact | null>(null);
+  const [consoleOutput, setConsoleOutput] = useState<ConsoleLog[]>([]);
+
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRootRef = useRef<HTMLDivElement>(null);
 
   const hasHistory = conversationId !== null && messages.length > 0;
   const showCenterPrompt = !hasHistory && !isTyping && messages.length === 0 && !input;
+
+  // Canvas mode: handler to show code in preview panel
+  const showPreview = (code: string, language: string) => {
+    const artifact: Artifact = {
+      id: Date.now().toString(),
+      title: `Preview - ${language.toUpperCase()}`,
+      language,
+      files: [{ path: `main.${language}`, content: code, language }],
+      createdAt: new Date(),
+    };
+    setCanvasArtifact(artifact);
+    setIsCanvasOpen(true);
+  };
+
+  // Canvas mode: execute code via E2B
+  const handleExecuteCode = async (code: string, language: string): Promise<ExecutionResult> => {
+    try {
+      const res = await fetch("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ code, language }),
+      });
+      if (!res.ok) throw new Error("Execution failed");
+      return await res.json();
+    } catch (error) {
+      return {
+        output: "",
+        error: error instanceof Error ? error.message : "Execution failed",
+        logs: [],
+      };
+    }
+  };
 
   const fetchTokenStatus = async () => {
     try {
@@ -535,6 +579,7 @@ export default function ChatBox({
     formData.append("message", trimmed || "Please analyze the attached file(s).");
     formData.append("model", selectedModel);
     formData.append("searchEnabled", searchEnabled.toString());
+    formData.append("useCanvas", isCanvasOpen.toString());
     if (conversationId) formData.append("conversationId", conversationId);
 
     filesToSend.forEach((file, index) => {
@@ -630,21 +675,22 @@ export default function ChatBox({
     }
   }
 
- const handlePromptSubmit = async (event?: FormEvent<HTMLFormElement>) => {
-  event?.preventDefault();
-  if (isTyping || (!input.trim() && files.length === 0)) return;
-  await sendChatMessage(input);
-};
-
+  const handlePromptSubmit = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (isTyping) return;
+    await sendChatMessage(input);
+  };
 
   const handleTextareaKeyDown = async (
     e: KeyboardEvent<HTMLTextAreaElement>
   ) => {
     if (e.key === "Enter" && !e.shiftKey) {
-  e.preventDefault();
-  handlePromptSubmit();
-}
+      e.preventDefault();
+      if (isTyping || !input.trim()) return;
 
+      setIsTyping(true);
+      await sendChatMessage(input);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -667,8 +713,15 @@ export default function ChatBox({
     }
   };
 
-  return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-white dark:bg-gray-950">
+  // Canvas context value
+  const canvasContextValue = {
+    isCanvasOpen,
+    showPreview,
+  };
+
+  // Main chat content (left side when canvas is open)
+  const chatContent = (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-white dark:bg-gray-950">
       <CompactTokenStatus tokenStatus={tokenStatus} />
 
       {/* Token Depleted Modal - Shows for ALL users (Free and Pro) */}
@@ -812,13 +865,25 @@ export default function ChatBox({
                                           <span className="text-xs font-semibold uppercase tracking-wide text-black dark:text-white truncate">
                                             {lang}
                                           </span>
-                                          <CodeBlockCopyButton
-                                            onCopy={async () => {
-                                              if (!navigator.clipboard) return;
-                                              await navigator.clipboard.writeText(codeText);
-                                            }}
-                                            className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition-all flex-shrink-0"
-                                          />
+                                          <div className="flex items-center gap-1">
+                                            {/* Preview button - visible when Canvas mode is on */}
+                                            {isCanvasOpen && isCanvasLanguage(lang) && (
+                                              <button
+                                                onClick={() => showPreview(codeText, lang)}
+                                                className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all flex-shrink-0 flex items-center justify-center"
+                                                title="Preview in Canvas"
+                                              >
+                                                <EyeIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                              </button>
+                                            )}
+                                            <CodeBlockCopyButton
+                                              onCopy={async () => {
+                                                if (!navigator.clipboard) return;
+                                                await navigator.clipboard.writeText(codeText);
+                                              }}
+                                              className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition-all flex-shrink-0"
+                                            />
+                                          </div>
                                         </div>
                                         <div className="max-h-64 sm:max-h-80 overflow-auto">
                                           <CodeBlock
@@ -954,7 +1019,6 @@ export default function ChatBox({
           )}
 
           <form onSubmit={handlePromptSubmit} className="flex items-end gap-2">
-
             <div className="flex flex-1 flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all">
               <textarea
                 value={input}
@@ -1021,6 +1085,21 @@ export default function ChatBox({
                     <span className="hidden sm:inline text-xs">{searchEnabled ? "On" : "Search"}</span>
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => setIsCanvasOpen(!isCanvasOpen)}
+                    disabled={isTyping}
+                    title="Canvas Mode - AI generates complete, previewable code"
+                    className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${
+                      isCanvasOpen
+                        ? "bg-purple-600 dark:bg-purple-500 border border-purple-600 dark:border-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-400"
+                        : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
+                    }`}
+                  >
+                    <LayoutIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline text-xs">{isCanvasOpen ? "On" : "Canvas"}</span>
+                  </button>
+
                   <PromptInputSelect
                     value={selectedModel}
                     onValueChange={setSelectedModel}
@@ -1070,5 +1149,41 @@ export default function ChatBox({
         </div>
       </div>
     </div>
+  );
+
+  // Canvas preview panel (right side)
+  const canvasPanel = canvasArtifact ? (
+    <CodeCanvas
+      artifact={canvasArtifact}
+      onClose={() => {
+        setCanvasArtifact(null);
+      }}
+      consoleOutput={consoleOutput}
+      onExecute={handleExecuteCode}
+    />
+  ) : (
+    <div className="h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-8 text-center">
+      <LayoutIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+      <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
+        Canvas Mode Active
+      </h3>
+      <p className="text-sm text-gray-500 dark:text-gray-500 max-w-xs">
+        Ask the AI to generate code and click the Preview button on any code block to see it here.
+      </p>
+    </div>
+  );
+
+  return (
+    <CanvasProvider value={canvasContextValue}>
+      <ResizableSplit
+        left={chatContent}
+        right={canvasPanel}
+        isRightVisible={isCanvasOpen}
+        onCloseRight={() => {
+          setIsCanvasOpen(false);
+          setCanvasArtifact(null);
+        }}
+      />
+    </CanvasProvider>
   );
 }
