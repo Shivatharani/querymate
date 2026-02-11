@@ -21,8 +21,7 @@ export function CanvasProvider({
   value: CanvasContextType;
 }) {
   return (
-     <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>
-
+    <CanvasContext.Provider value={value}>{children}</CanvasContext.Provider>
   );
 }
 
