@@ -29,7 +29,8 @@ const baseName = suggestedName
   ? slugify(suggestedName)
   : "querymate-project";
 
-const repoName = `${baseName}`;
+const repoName = `querymate-${baseName}-${Math.floor(Math.random() * 1000)}`;
+
 
 
 const res = await fetch("https://api.github.com/user/repos", {
@@ -47,7 +48,14 @@ const res = await fetch("https://api.github.com/user/repos", {
 
 
   const repo = await res.json();
-  // ✅ Add README.md to repo
+
+// 🔴 If GitHub failed, return error BEFORE using repo fields
+if (!res.ok) {
+  console.error("GitHub repo creation failed:", repo);
+  return NextResponse.json(repo, { status: res.status });
+}
+
+// ✅ Now it's safe to use repo.owner.login
 await fetch(
   `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents/README.md`,
   {
@@ -58,10 +66,13 @@ await fetch(
     },
     body: JSON.stringify({
       message: "Initial commit from QueryMate",
-      content: Buffer.from("# QueryMate Project\n\nRepo created from QueryMate sandbox.").toString("base64"),
+      content: Buffer.from(
+        "# QueryMate Project\n\nRepo created from QueryMate sandbox."
+      ).toString("base64"),
     }),
   }
 );
+
 
   // Save repo info in DB
   // { owner: repo.owner.login, name: repo.name }

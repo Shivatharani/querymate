@@ -54,6 +54,9 @@ export default function CodeCanvas({
   const [showGitHubDialog, setShowGitHubDialog] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
 
+  const [dialogType, setDialogType] = useState<"created" | "updated">("created");
+
+
   const mainFile = artifact?.files[0];
   const code = mainFile?.content || "";
   const language = mainFile?.language || artifact?.language || "jsx";
@@ -149,8 +152,10 @@ const repoRes = await fetch("/api/github/create-repo", {
   }
 
   // 3️⃣ Notify user + open repo
-  setRepoUrl(repo.url);
+ setRepoUrl(repo.url);
 setShowGitHubDialog(true);
+setDialogType("created");
+
 
 
   setIsSaving(false);
@@ -180,6 +185,8 @@ setShowGitHubDialog(true);
 
   setRepoUrl(selectedRepo.url);
 setShowGitHubDialog(true);
+setDialogType("updated");
+
 
 
   setIsSaving(false);
@@ -332,9 +339,18 @@ setShowGitHubDialog(true);
   open={showGitHubDialog}
   onOpenChange={setShowGitHubDialog}
   repoUrl={repoUrl}
-  title="GitHub Publish Successful"
-  description="Your project has been pushed to GitHub successfully."
+  title={
+    dialogType === "created"
+      ? "Repository Created Successfully"
+      : "Repository Updated Successfully"
+  }
+  description={
+    dialogType === "created"
+      ? "Your project has been pushed to GitHub."
+      : "Your existing repository has been updated."
+  }
 />
+
 
     </div>
   );
