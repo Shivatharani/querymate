@@ -13,6 +13,8 @@ import {
   Loader2,
   Github,
   Save,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -216,32 +218,32 @@ setDialogType("updated");
   /* ---------------- UI ---------------- */
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-900 border-l">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="flex items-center gap-2">
-          <Code className="w-4 h-4" />
-          <span className="font-medium text-sm truncate max-w-[200px]">
+      <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+          <Code className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-gray-600 dark:text-gray-400" />
+          <span className="font-medium text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[200px] text-gray-900 dark:text-gray-100">
             {artifact.title || "Code Canvas"}
           </span>
-          <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-600 font-mono">
+          <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-mono flex-shrink-0">
             {language}
           </span>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleGitHubClick}
             title="Publish to GitHub"
             disabled={isSaving}
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
           >
             {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
             ) : (
-              <Github className="w-4 h-4" />
+              <Github className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             )}
           </Button>
 
@@ -249,12 +251,12 @@ setDialogType("updated");
             variant="ghost"
             size="sm"
             onClick={handleCopy}
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
           >
             {copied ? (
-              <Check className="w-4 h-4 text-green-500" />
+              <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
             ) : (
-              <Copy className="w-4 h-4" />
+              <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             )}
           </Button>
 
@@ -262,9 +264,9 @@ setDialogType("updated");
             variant="ghost"
             size="sm"
             onClick={handleDownload}
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0 hidden sm:flex"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
 
           {isExecutableLanguage(language) && onExecute && (
@@ -273,12 +275,12 @@ setDialogType("updated");
               size="sm"
               onClick={handleExecute}
               disabled={isExecuting}
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
             >
               {isExecuting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
               ) : (
-                <Play className="w-4 h-4" />
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               )}
             </Button>
           )}
@@ -287,26 +289,26 @@ setDialogType("updated");
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b">
+      <div className="flex border-b border-gray-200 dark:border-gray-700">
         {["code", "preview", "console"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as TabType)}
-            className={`px-4 py-2 text-sm border-b-2 ${
+            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500"
+                ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             }`}
           >
-            {tab.toUpperCase()}
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
@@ -314,7 +316,7 @@ setDialogType("updated");
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeTab === "code" && (
-          <pre className="h-full p-4 text-sm font-mono overflow-auto">
+          <pre className="h-full p-2 sm:p-4 text-xs sm:text-sm font-mono overflow-auto bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
             {code}
           </pre>
         )}
@@ -322,16 +324,22 @@ setDialogType("updated");
         {activeTab === "preview" && (
           <iframe
             srcDoc={getPreviewHtml()}
-            className="w-full h-full border-0"
+            className="w-full h-full border-0 bg-white"
           />
         )}
 
         {activeTab === "console" && (
-          <div className="h-full p-4 font-mono text-sm bg-black text-white overflow-auto">
+          <div className="h-full p-2 sm:p-4 font-mono text-xs sm:text-sm bg-gray-950 text-green-400 overflow-auto">
+            {executionResult?.error && (
+              <div className="text-red-400 mb-2">{executionResult.error}</div>
+            )}
             {executionResult?.output}
             {consoleOutput.map((log, i) => (
-              <div key={i}>{log.message}</div>
+              <div key={i} className={log.type === "error" ? "text-red-400" : ""}>{log.message}</div>
             ))}
+            {!executionResult && consoleOutput.length === 0 && (
+              <div className="text-gray-500">No output yet. Click Run to execute code.</div>
+            )}
           </div>
         )}
       </div>
@@ -362,6 +370,7 @@ interface ResizableSplitProps {
   left: React.ReactNode;
   right: React.ReactNode;
   isRightVisible: boolean;
+  hasContent?: boolean; // Whether there's actual content to show (e.g., artifact)
   onCloseRight: () => void;
 }
 
@@ -369,16 +378,28 @@ export function ResizableSplit({
   left,
   right,
   isRightVisible,
+  hasContent = false,
   onCloseRight,
 }: ResizableSplitProps) {
   const [rightWidth, setRightWidth] = useState(500);
+  const [isMobile, setIsMobile] = useState(false);
   const isDragging = useRef(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleMouseDown = () => {
     isDragging.current = true;
 
     const onMove = (e: MouseEvent) =>
-      isDragging.current && setRightWidth((w) => w - e.movementX);
+      isDragging.current && setRightWidth((w) => Math.max(280, Math.min(w - e.movementX, window.innerWidth - 400)));
     const onUp = () => {
       isDragging.current = false;
       window.removeEventListener("mousemove", onMove);
@@ -389,16 +410,38 @@ export function ResizableSplit({
     window.addEventListener("mouseup", onUp);
   };
 
+  // Mobile: Only show full-screen overlay when there's actual content
+  if (isMobile) {
+    return (
+      <div className="flex h-full relative">
+        <div className="flex-1 h-full">{left}</div>
+        {isRightVisible && hasContent && (
+          <div className="fixed inset-0 z-50 bg-white dark:bg-gray-900">
+            {right}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: Side-by-side with resizable divider
   return (
     <div className="flex h-full">
-      <div className="flex-1">{left}</div>
+      <div className={`flex-1 min-w-0 transition-all duration-200 ${isRightVisible ? "" : ""}`}>
+        {left}
+      </div>
       {isRightVisible && (
         <>
           <div
-            className="w-1 bg-gray-300 cursor-col-resize"
+            className="w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-blue-400 dark:hover:bg-blue-500 cursor-col-resize transition-colors flex-shrink-0"
             onMouseDown={handleMouseDown}
           />
-          <div style={{ width: rightWidth }}>{right}</div>
+          <div 
+            style={{ width: rightWidth }} 
+            className="flex-shrink-0 h-full overflow-hidden"
+          >
+            {right}
+          </div>
         </>
       )}
     </div>

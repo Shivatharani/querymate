@@ -36,6 +36,10 @@ export function generatePreviewHtml(artifact: Artifact): string {
   code = code.replace(/interface \w+ \{[^}]*\}/g, "");
   code = code.replace(/type \w+ = [^;]+;/g, "");
 
+  // Find CSS file in artifact if exists
+  const cssFile = artifact.files.find((f) => f.path.match(/\.css$/));
+  const customCss = cssFile?.content || "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -49,6 +53,7 @@ export function generatePreviewHtml(artifact: Artifact): string {
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    ${customCss}
   </style>
 </head>
 <body>

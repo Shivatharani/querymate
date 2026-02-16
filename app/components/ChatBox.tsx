@@ -298,16 +298,39 @@ export default function ChatBox({
   const showCenterPrompt = !hasHistory && !isTyping && messages.length === 0 && !input;
 
   // Canvas mode: handler to show code in preview panel
-  const showPreview = (code: string, language: string) => {
+  const showPreview = (code: string, language: string, messageContent?: string) => {
+    const files: { path: string; content: string; language: string }[] = [
+      { path: `main.${language}`, content: code, language }
+    ];
+    
+    // Extract CSS from the message content if available
+    if (messageContent) {
+      const cssBlocks = extractCssFromMarkdown(messageContent);
+      if (cssBlocks.length > 0) {
+        files.push({ path: "styles.css", content: cssBlocks.join("\n\n"), language: "css" });
+      }
+    }
+    
     const artifact: Artifact = {
       id: Date.now().toString(),
       title: `Preview - ${language.toUpperCase()}`,
       language,
-      files: [{ path: `main.${language}`, content: code, language }],
+      files,
       createdAt: new Date(),
     };
     setCanvasArtifact(artifact);
     setIsCanvasOpen(true);
+  };
+
+  // Helper to extract CSS code blocks from markdown
+  const extractCssFromMarkdown = (markdown: string): string[] => {
+    const cssBlocks: string[] = [];
+    const codeBlockRegex = /```(?:css|scss|style)\s*\n([\s\S]*?)```/gi;
+    let match;
+    while ((match = codeBlockRegex.exec(markdown)) !== null) {
+      cssBlocks.push(match[1].trim());
+    }
+    return cssBlocks;
   };
 
   // Canvas mode: execute code via E2B
@@ -869,7 +892,7 @@ export default function ChatBox({
                                             {/* Preview button - visible when Canvas mode is on */}
                                             {isCanvasOpen && isCanvasLanguage(lang) && (
                                               <button
-                                                onClick={() => showPreview(codeText, lang)}
+                                                onClick={() => showPreview(codeText, lang, m.content)}
                                                 className="h-6 w-6 sm:h-7 sm:w-7 rounded-lg bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all flex-shrink-0 flex items-center justify-center"
                                                 title="Preview in Canvas"
                                               >
@@ -1157,12 +1180,21 @@ export default function ChatBox({
       artifact={canvasArtifact}
       onClose={() => {
         setCanvasArtifact(null);
+        setIsCanvasOpen(false);
       }}
       consoleOutput={consoleOutput}
       onExecute={handleExecuteCode}
     />
   ) : (
-    <div className="h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-8 text-center">
+    <div className="h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-8 text-center relative">
+      {/* Close button for mobile */}
+      <button
+        onClick={() => setIsCanvasOpen(false)}
+        className="absolute top-4 right-4 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+        aria-label="Close canvas mode"
+      >
+        <XIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+      </button>
       <LayoutIcon className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
       <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
         Canvas Mode Active
@@ -1179,6 +1211,7 @@ export default function ChatBox({
         left={chatContent}
         right={canvasPanel}
         isRightVisible={isCanvasOpen}
+        hasContent={!!canvasArtifact}
         onCloseRight={() => {
           setIsCanvasOpen(false);
           setCanvasArtifact(null);

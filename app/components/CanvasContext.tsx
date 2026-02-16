@@ -4,7 +4,7 @@ import { createContext, useContext } from "react";
 
 export interface CanvasContextType {
   isCanvasOpen: boolean;
-  showPreview: (code: string, language: string) => void;
+  showPreview: (code: string, language: string, messageContent?: string) => void;
 }
 
 const CanvasContext = createContext<CanvasContextType | null>(null);
