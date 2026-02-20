@@ -29,8 +29,7 @@ import {
 } from "@/lib/playground/utils";
 import { GitHubSuccessDialog } from "@/components/ui/github-success-dialog";
 
-import WebContainerTerminal from "./WebContainerTerminal";
-
+import StackBlitzEmbed from "./StackBlitzEmbed";
 
 interface CodeCanvasProps {
   artifact: Artifact | null;
@@ -39,7 +38,7 @@ interface CodeCanvasProps {
   onExecute?: (code: string, language: string) => Promise<ExecutionResult>;
 }
 
-type TabType = "code" | "preview" | "console" | "terminal";
+type TabType = "code" | "preview" | "console" | "stackblitz";
 
 export default function CodeCanvas({
   artifact,
@@ -87,32 +86,31 @@ export default function CodeCanvas({
   };
 
   const handleExecute = async () => {
-  // If JavaScript / TypeScript → Use WebContainer
-  if (language === "javascript" || language === "typescript") {
-    setActiveTab("terminal");
-    return;
-  }
+    // If it's a web tech, use StackBlitz
+    if (["javascript", "typescript", "html", "css"].includes(language.toLowerCase())) {
+      setActiveTab("stackblitz");
+      return;
+    }
 
-  // Otherwise → Use backend execution API
-  if (!onExecute || !code) return;
+    // Otherwise use backend execution API (like Python)
+    if (!onExecute || !code) return;
 
-  setIsExecuting(true);
-  setActiveTab("console");
+    setIsExecuting(true);
+    setActiveTab("console");
 
-  try {
-    const result = await onExecute(code, language);
-    setExecutionResult(result);
-  } catch (error) {
-    setExecutionResult({
-      output: "",
-      error:
-        error instanceof Error ? error.message : "Execution failed",
-      logs: [],
-    });
-  } finally {
-    setIsExecuting(false);
-  }
-};
+    try {
+      const result = await onExecute(code, language);
+      setExecutionResult(result);
+    } catch (error) {
+      setExecutionResult({
+        output: "",
+        error: error instanceof Error ? error.message : "Execution failed",
+        logs: [],
+      });
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   const getPreviewHtml = () => {
     if (language === "html") return generateHtmlPreview(code);
@@ -122,109 +120,109 @@ export default function CodeCanvas({
   /* ---------------- GitHub publish logic ---------------- */
 
   const createRepoAndPublish = async () => {
-  setIsSaving(true);
+    setIsSaving(true);
 
-  // 1️⃣ Create repo
-  const projectName =
-  artifact?.title ||
-  mainFile?.path ||
-  `project-${language}`;
+    // 1️⃣ Create repo
+    const projectName =
+      artifact?.title ||
+      mainFile?.path ||
+      `project-${language}`;
 
-const repoRes = await fetch("/api/github/create-repo", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    suggestedName: projectName,
-  }),
-});
-
-  
-
-  if (!repoRes.ok) {
-    setIsSaving(false);
-    throw new Error("Failed to create GitHub repository");
-  }
-
-  const repo = await repoRes.json();
-  setSelectedRepo(repo);
-
-  // 2️⃣ Commit ALL files from artifact
-  const files = artifact?.files ?? [];
-
-  for (const file of files) {
-    await fetch("/api/github/commit", {
+    const repoRes = await fetch("/api/github/create-repo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        owner: repo.owner,
-        repo: repo.repoName,
-        path: file.path || `index.${file.language || "txt"}`,
-        content: file.content,
-        message: `Add ${file.path || "file"} from QueryMate`,
+        suggestedName: projectName,
       }),
     });
-  }
-
-  // 3️⃣ Notify user + open repo
- setRepoUrl(repo.url);
-setShowGitHubDialog(true);
-setDialogType("created");
 
 
 
-  setIsSaving(false);
-};
+    if (!repoRes.ok) {
+      setIsSaving(false);
+      throw new Error("Failed to create GitHub repository");
+    }
+
+    const repo = await repoRes.json();
+    setSelectedRepo(repo);
+
+    // 2️⃣ Commit ALL files from artifact
+    const files = artifact?.files ?? [];
+
+    for (const file of files) {
+      await fetch("/api/github/commit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner: repo.owner,
+          repo: repo.repoName,
+          path: file.path || `index.${file.language || "txt"}`,
+          content: file.content,
+          message: `Add ${file.path || "file"} from QueryMate`,
+        }),
+      });
+    }
+
+    // 3️⃣ Notify user + open repo
+    setRepoUrl(repo.url);
+    setShowGitHubDialog(true);
+    setDialogType("created");
+
+
+
+    setIsSaving(false);
+  };
 
 
   const saveToGitHub = async () => {
-  if (!selectedRepo) return;
+    if (!selectedRepo) return;
 
-  setIsSaving(true);
+    setIsSaving(true);
 
-  const files = artifact?.files ?? [];
+    const files = artifact?.files ?? [];
 
-  for (const file of files) {
-    await fetch("/api/github/commit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        owner: selectedRepo.owner,
-        repo: selectedRepo.repoName,
-        path: file.path || `index.${file.language || "txt"}`,
-        content: file.content,
-        message: `Update ${file.path || "file"} via QueryMate`,
-      }),
-    });
-  }
+    for (const file of files) {
+      await fetch("/api/github/commit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner: selectedRepo.owner,
+          repo: selectedRepo.repoName,
+          path: file.path || `index.${file.language || "txt"}`,
+          content: file.content,
+          message: `Update ${file.path || "file"} via QueryMate`,
+        }),
+      });
+    }
 
-  setRepoUrl(selectedRepo.url);
-setShowGitHubDialog(true);
-setDialogType("updated");
+    setRepoUrl(selectedRepo.url);
+    setShowGitHubDialog(true);
+    setDialogType("updated");
 
 
 
-  setIsSaving(false);
-};
+    setIsSaving(false);
+  };
 
   const handleGitHubClick = async () => {
-  const res = await fetch("/api/github/status");
-  const status = await res.json();
+    const res = await fetch("/api/github/status");
+    const status = await res.json();
 
-  // 1️⃣ Not connected → OAuth
-  if (!status.connected) {
-    window.location.href = "/api/github/auth";
-    return;
-  }
+    // 1️⃣ Not connected → OAuth
+    if (!status.connected) {
+      window.location.href = "/api/github/auth";
+      return;
+    }
 
-  // 2️⃣ Connected but no repo → create + publish
-  if (status.connected && !selectedRepo) {
-    await createRepoAndPublish();
-    return;
-  }
+    // 2️⃣ Connected but no repo → create + publish
+    if (status.connected && !selectedRepo) {
+      await createRepoAndPublish();
+      return;
+    }
 
-  // 3️⃣ Repo exists → update files
-  await saveToGitHub();
-};
+    // 3️⃣ Repo exists → update files
+    await saveToGitHub();
+  };
 
 
   /* ---------------- UI ---------------- */
@@ -282,20 +280,21 @@ setDialogType("updated");
           </Button>
 
           {isExecutableLanguage(language) && (
-  <Button
-    variant="ghost"
-    size="sm"
-    onClick={handleExecute}
-    disabled={isExecuting}
-    className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-  >
-    {isExecuting ? (
-      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-    ) : (
-      <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-    )}
-  </Button>
-)}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExecute}
+              disabled={isExecuting}
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+              title={["javascript", "typescript", "html", "css"].includes(language.toLowerCase()) ? "Run in StackBlitz" : "Run Code"}
+            >
+              {isExecuting ? (
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-green-500" />
+              ) : (
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
+              )}
+            </Button>
+          )}
 
           <Button
             variant="ghost"
@@ -309,16 +308,15 @@ setDialogType("updated");
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
-        {["code", "preview", "console", "terminal"].map((tab) => (
+      <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        {["code", "preview", "console", "stackblitz"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as TabType)}
-            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab
-                ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            }`}
+            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === tab
+              ? "border-blue-500 text-blue-600 dark:text-blue-400"
+              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              }`}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
@@ -326,66 +324,70 @@ setDialogType("updated");
       </div>
 
       {/* Content */}
-<div className="flex-1 overflow-hidden">
-  
-  {activeTab === "code" && (
-    <pre className="h-full p-2 sm:p-4 text-xs sm:text-sm font-mono overflow-auto bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      {code}
-    </pre>
-  )}
+      <div className="flex-1 overflow-hidden">
 
-  {activeTab === "preview" && (
-    <iframe
-      srcDoc={getPreviewHtml()}
-      className="w-full h-full border-0 bg-white"
-    />
-  )}
+        {activeTab === "code" && (
+          <pre className="h-full p-2 sm:p-4 text-xs sm:text-sm font-mono overflow-auto bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+            {code}
+          </pre>
+        )}
 
-  {activeTab === "console" && (
-    <div className="h-full p-2 sm:p-4 font-mono text-xs sm:text-sm bg-gray-950 text-green-400 overflow-auto">
-      {executionResult?.error && (
-        <div className="text-red-400 mb-2">
-          {executionResult.error}
-        </div>
-      )}
-      {executionResult?.output}
-      {consoleOutput.map((log, i) => (
-        <div key={i} className={log.type === "error" ? "text-red-400" : ""}>
-          {log.message}
-        </div>
-      ))}
-      {!executionResult && consoleOutput.length === 0 && (
-        <div className="text-gray-500">
-          No output yet. Click Run to execute code.
-        </div>
-      )}
-    </div>
-  )}
+        {activeTab === "preview" && (
+          <iframe
+            srcDoc={getPreviewHtml()}
+            className="w-full h-full border-0 bg-white"
+          />
+        )}
 
-  {activeTab === "terminal" && (
-    <WebContainerTerminal
-      files={artifact.files.map((f) => ({
-        path: f.path,
-        content: f.content,
-      }))}
-    />
-  )}
-</div>
+        {activeTab === "console" && (
+          <div className="h-full p-2 sm:p-4 font-mono text-xs sm:text-sm bg-gray-950 text-green-400 overflow-auto">
+            {executionResult?.error && (
+              <div className="text-red-400 mb-2">
+                {executionResult.error}
+              </div>
+            )}
+            {executionResult?.output}
+            {consoleOutput.map((log, i) => (
+              <div key={i} className={log.type === "error" ? "text-red-400" : ""}>
+                {log.message}
+              </div>
+            ))}
+            {!executionResult && consoleOutput.length === 0 && (
+              <div className="text-gray-500">
+                No output yet. Click Run to execute code.
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "stackblitz" && (
+          <div className="h-full">
+            <StackBlitzEmbed
+              template={language === "html" ? "html" : "node"}
+              files={artifact.files.map((f) => ({
+                path: f.path || `index.${language}`,
+                content: f.content,
+              }))}
+              title={artifact.title || "QueryMate Code"}
+            />
+          </div>
+        )}
+      </div>
       <GitHubSuccessDialog
-  open={showGitHubDialog}
-  onOpenChange={setShowGitHubDialog}
-  repoUrl={repoUrl}
-  title={
-    dialogType === "created"
-      ? "Repository Created Successfully"
-      : "Repository Updated Successfully"
-  }
-  description={
-    dialogType === "created"
-      ? "Your project has been pushed to GitHub."
-      : "Your existing repository has been updated."
-  }
-/>
+        open={showGitHubDialog}
+        onOpenChange={setShowGitHubDialog}
+        repoUrl={repoUrl}
+        title={
+          dialogType === "created"
+            ? "Repository Created Successfully"
+            : "Repository Updated Successfully"
+        }
+        description={
+          dialogType === "created"
+            ? "Your project has been pushed to GitHub."
+            : "Your existing repository has been updated."
+        }
+      />
 
 
     </div>
@@ -464,8 +466,8 @@ export function ResizableSplit({
             className="w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-blue-400 dark:hover:bg-blue-500 cursor-col-resize transition-colors flex-shrink-0"
             onMouseDown={handleMouseDown}
           />
-          <div 
-            style={{ width: rightWidth }} 
+          <div
+            style={{ width: rightWidth }}
             className="flex-shrink-0 h-full overflow-hidden"
           >
             {right}
@@ -473,6 +475,6 @@ export function ResizableSplit({
         </>
       )}
     </div>
-    
+
   );
 }
