@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Zap, Infinity, ArrowLeft, Users, Calendar, Clock } from "lucide-react";
+import { MessageSquare, Zap, Infinity, ArrowLeft, Users, Calendar, Clock } from "lucide-react"; 
 
 type Conversation = {
   id: string;

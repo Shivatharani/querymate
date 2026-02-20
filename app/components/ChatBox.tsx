@@ -299,9 +299,26 @@ export default function ChatBox({
 
   // Canvas mode: handler to show code in preview panel
   const showPreview = (code: string, language: string, messageContent?: string) => {
-    const files: { path: string; content: string; language: string }[] = [
-      { path: `main.${language}`, content: code, language }
-    ];
+   const extensionMap: Record<string, string> = {
+  javascript: "js",
+  typescript: "ts",
+  python: "py",
+  cpp: "cpp",
+  c: "c",
+  java: "java",
+  go: "go",
+  rust: "rs",
+};
+
+const extension = extensionMap[language] || "txt";
+
+const files = [
+  {
+    path: `main.${extension}`,
+    content: code,
+    language,
+  },
+];
     
     // Extract CSS from the message content if available
     if (messageContent) {

@@ -15,8 +15,8 @@ export default function RootLayout({
         <title>Query-Mate AI</title>
         <link
           rel="icon"
-          href="https://img.icons8.com/?size=100&id=unXm4ixWAr6H&format=png&color=000000"
-          sizes="any"
+          href="/favicon.png"
+          sizes="any"  
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="AI-powered chat application with advanced features" />

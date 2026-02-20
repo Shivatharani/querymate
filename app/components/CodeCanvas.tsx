@@ -29,6 +29,9 @@ import {
 } from "@/lib/playground/utils";
 import { GitHubSuccessDialog } from "@/components/ui/github-success-dialog";
 
+import WebContainerTerminal from "./WebContainerTerminal";
+
+
 interface CodeCanvasProps {
   artifact: Artifact | null;
   onClose: () => void;
@@ -36,7 +39,7 @@ interface CodeCanvasProps {
   onExecute?: (code: string, language: string) => Promise<ExecutionResult>;
 }
 
-type TabType = "code" | "preview" | "console";
+type TabType = "code" | "preview" | "console" | "terminal";
 
 export default function CodeCanvas({
   artifact,
@@ -84,23 +87,32 @@ export default function CodeCanvas({
   };
 
   const handleExecute = async () => {
-    if (!onExecute || !code) return;
-    setIsExecuting(true);
-    setActiveTab("console");
-    try {
-      const result = await onExecute(code, language);
-      setExecutionResult(result);
-    } catch (error) {
-      setExecutionResult({
-        output: "",
-        error:
-          error instanceof Error ? error.message : "Execution failed",
-        logs: [],
-      });
-    } finally {
-      setIsExecuting(false);
-    }
-  };
+  // If JavaScript / TypeScript → Use WebContainer
+  if (language === "javascript" || language === "typescript") {
+    setActiveTab("terminal");
+    return;
+  }
+
+  // Otherwise → Use backend execution API
+  if (!onExecute || !code) return;
+
+  setIsExecuting(true);
+  setActiveTab("console");
+
+  try {
+    const result = await onExecute(code, language);
+    setExecutionResult(result);
+  } catch (error) {
+    setExecutionResult({
+      output: "",
+      error:
+        error instanceof Error ? error.message : "Execution failed",
+      logs: [],
+    });
+  } finally {
+    setIsExecuting(false);
+  }
+};
 
   const getPreviewHtml = () => {
     if (language === "html") return generateHtmlPreview(code);
@@ -269,21 +281,21 @@ setDialogType("updated");
             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
 
-          {isExecutableLanguage(language) && onExecute && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExecute}
-              disabled={isExecuting}
-              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-            >
-              {isExecuting ? (
-                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
-              ) : (
-                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              )}
-            </Button>
-          )}
+          {isExecutableLanguage(language) && (
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={handleExecute}
+    disabled={isExecuting}
+    className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+  >
+    {isExecuting ? (
+      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+    ) : (
+      <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+    )}
+  </Button>
+)}
 
           <Button
             variant="ghost"
@@ -298,7 +310,7 @@ setDialogType("updated");
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 dark:border-gray-700">
-        {["code", "preview", "console"].map((tab) => (
+        {["code", "preview", "console", "terminal"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as TabType)}
@@ -314,35 +326,51 @@ setDialogType("updated");
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {activeTab === "code" && (
-          <pre className="h-full p-2 sm:p-4 text-xs sm:text-sm font-mono overflow-auto bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-            {code}
-          </pre>
-        )}
+<div className="flex-1 overflow-hidden">
+  
+  {activeTab === "code" && (
+    <pre className="h-full p-2 sm:p-4 text-xs sm:text-sm font-mono overflow-auto bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+      {code}
+    </pre>
+  )}
 
-        {activeTab === "preview" && (
-          <iframe
-            srcDoc={getPreviewHtml()}
-            className="w-full h-full border-0 bg-white"
-          />
-        )}
+  {activeTab === "preview" && (
+    <iframe
+      srcDoc={getPreviewHtml()}
+      className="w-full h-full border-0 bg-white"
+    />
+  )}
 
-        {activeTab === "console" && (
-          <div className="h-full p-2 sm:p-4 font-mono text-xs sm:text-sm bg-gray-950 text-green-400 overflow-auto">
-            {executionResult?.error && (
-              <div className="text-red-400 mb-2">{executionResult.error}</div>
-            )}
-            {executionResult?.output}
-            {consoleOutput.map((log, i) => (
-              <div key={i} className={log.type === "error" ? "text-red-400" : ""}>{log.message}</div>
-            ))}
-            {!executionResult && consoleOutput.length === 0 && (
-              <div className="text-gray-500">No output yet. Click Run to execute code.</div>
-            )}
-          </div>
-        )}
-      </div>
+  {activeTab === "console" && (
+    <div className="h-full p-2 sm:p-4 font-mono text-xs sm:text-sm bg-gray-950 text-green-400 overflow-auto">
+      {executionResult?.error && (
+        <div className="text-red-400 mb-2">
+          {executionResult.error}
+        </div>
+      )}
+      {executionResult?.output}
+      {consoleOutput.map((log, i) => (
+        <div key={i} className={log.type === "error" ? "text-red-400" : ""}>
+          {log.message}
+        </div>
+      ))}
+      {!executionResult && consoleOutput.length === 0 && (
+        <div className="text-gray-500">
+          No output yet. Click Run to execute code.
+        </div>
+      )}
+    </div>
+  )}
+
+  {activeTab === "terminal" && (
+    <WebContainerTerminal
+      files={artifact.files.map((f) => ({
+        path: f.path,
+        content: f.content,
+      }))}
+    />
+  )}
+</div>
       <GitHubSuccessDialog
   open={showGitHubDialog}
   onOpenChange={setShowGitHubDialog}
@@ -445,5 +473,6 @@ export function ResizableSplit({
         </>
       )}
     </div>
+    
   );
 }

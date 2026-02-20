@@ -33,6 +33,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@supabase/supabase-js": "^2.84.0",
+    "@webcontainer/api": "^1.6.1",
     "@xyflow/react": "^12.10.0",
     "ai": "^5.0.106",
     "ai-elements": "^1.6.3",
