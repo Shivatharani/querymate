@@ -411,29 +411,44 @@ export async function POST(req: NextRequest) {
 
 1. ALWAYS provide a SINGLE, COMPLETE, SELF-CONTAINED code block that can run immediately
 2. Include ALL necessary code in ONE code block - no separate files
-3. For React components: include inline styles or use Tailwind CSS classes (CDN is available)
+3. For React components: use Tailwind CSS classes for styling (it is available)
 4. DO NOT split code across multiple blocks - everything must be in one block
 5. Include all imports, component definitions, and exports in the same block
-6. For web apps: create a single component named 'App', 'Main', 'Component', 'Home', or 'Page'
-7. Use React hooks directly: useState, useEffect, useCallback, useRef are available globally
+6. For web apps: create a single component function named 'App' and add \`export default App;\` at the end
+7. Use React hooks directly: useState, useEffect, useCallback, useRef are available via import from 'react'
 8. Keep explanations brief - focus on providing working, runnable code
 9. For Python: include all necessary imports and make the code self-contained
 10. The code should be ready to execute without any modifications
 
+CRITICAL - DEPENDENCY DECLARATION:
+If your code uses ANY npm packages beyond react and react-dom, you MUST add a comment on the VERY FIRST LINE of your code block listing them:
+// DEPENDENCIES: package-name1, package-name2, package-name3
+
+For example if using framer-motion and lucide-react:
+// DEPENDENCIES: framer-motion, lucide-react
+
+This is REQUIRED for the preview system to install the correct packages. Always include ALL external packages used in imports.
+
 Example format for React:
-\`\`\`jsx
+\\\`\\\`\\\`jsx
+// DEPENDENCIES: framer-motion
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+
 function App() {
   const [state, setState] = useState(initialValue);
-  // ... component logic
   return (
     <div className="...">
       {/* Complete UI */}
     </div>
   );
 }
-\`\`\`
+
+export default App;
+\\\`\\\`\\\`
 `
       : null;
+
 
     const finalMessages: any[] = [
       ...(canvasSystemPrompt

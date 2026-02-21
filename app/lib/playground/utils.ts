@@ -49,7 +49,11 @@ export function generatePreviewHtml(artifact: Artifact): string {
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { install } from 'https://esm.sh/@twind/core@1';
+    import presetTailwind from 'https://esm.sh/@twind/preset-tailwind@1';
+    install({ presets: [presetTailwind()] });
+  </script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
@@ -144,7 +148,11 @@ export function generateHtmlPreview(code: string, css?: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { install } from 'https://esm.sh/@twind/core@1';
+    import presetTailwind from 'https://esm.sh/@twind/preset-tailwind@1';
+    install({ presets: [presetTailwind()] });
+  </script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui; }
@@ -187,4 +195,80 @@ export function isExecutableLanguage(language: string): boolean {
  */
 export function isCanvasLanguage(language: string): boolean {
   return isPreviewableLanguage(language) || isExecutableLanguage(language);
+}
+
+/**
+ * Generates an HTML page telling the user to switch to npm mode.
+ * Shown in Fast Preview when code uses external npm packages.
+ */
+export function generateNpmRequiredHtml(packages: string[]): string {
+  const pkgList = packages.map((p) => `<li>${p}</li>`).join("\n          ");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    .card {
+      max-width: 420px;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+    p { font-size: 14px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5; }
+    .pkg-list {
+      text-align: left;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-family: monospace;
+      font-size: 13px;
+      list-style: none;
+    }
+    .pkg-list li::before { content: "📦 "; }
+    .pkg-list li { padding: 3px 0; color: #a78bfa; }
+    .hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">⚡→📦</div>
+    <h2>npm Packages Required</h2>
+    <p>This code uses external packages that aren't available in Fast mode:</p>
+    <ul class="pkg-list">
+      ${pkgList}
+    </ul>
+    <div class="hint">
+      ↑ Switch to <strong>npm</strong> mode above to run this code
+    </div>
+  </div>
+</body>
+</html>`;
 }

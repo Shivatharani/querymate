@@ -12,9 +12,8 @@ import {
   Play,
   Loader2,
   Github,
-  Save,
-  Maximize2,
-  Minimize2,
+  Zap,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,10 +25,22 @@ import {
   generatePreviewHtml,
   generateHtmlPreview,
   isExecutableLanguage,
+  isPreviewableLanguage,
+  generateNpmRequiredHtml,
 } from "@/lib/playground/utils";
+import { needsNpmPackages, detectDependencies } from "@/lib/playground/webcontainer";
 import { GitHubSuccessDialog } from "@/components/ui/github-success-dialog";
+import dynamic from "next/dynamic";
 
-import StackBlitzEmbed from "./StackBlitzEmbed";
+// Lazy-load WebContainerPreview to avoid SSR issues with WebContainer API
+const WebContainerPreview = dynamic(
+  () => import("./WebContainerPreview"),
+  { ssr: false, loading: () => (
+    <div className="h-full flex items-center justify-center bg-gray-950">
+      <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+    </div>
+  )}
+);
 
 interface CodeCanvasProps {
   artifact: Artifact | null;
@@ -38,7 +49,8 @@ interface CodeCanvasProps {
   onExecute?: (code: string, language: string) => Promise<ExecutionResult>;
 }
 
-type TabType = "code" | "preview" | "console" | "stackblitz";
+type TabType = "code" | "preview" | "console";
+type PreviewMode = "fast" | "npm";
 
 export default function CodeCanvas({
   artifact,
@@ -47,6 +59,7 @@ export default function CodeCanvas({
   onExecute,
 }: CodeCanvasProps) {
   const [activeTab, setActiveTab] = useState<TabType>("preview");
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("fast");
   const [copied, setCopied] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] =
@@ -57,15 +70,16 @@ export default function CodeCanvas({
   const [isSaving, setIsSaving] = useState(false);
   const [showGitHubDialog, setShowGitHubDialog] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
-
   const [dialogType, setDialogType] = useState<"created" | "updated">("created");
-
 
   const mainFile = artifact?.files[0];
   const code = mainFile?.content || "";
   const language = mainFile?.language || artifact?.language || "jsx";
 
   if (!artifact) return null;
+
+  /* ---------- is web language (can use both modes) ---------- */
+  const isWebLang = isPreviewableLanguage(language);
 
   /* ---------------- Basic actions ---------------- */
 
@@ -86,15 +100,15 @@ export default function CodeCanvas({
   };
 
   const handleExecute = async () => {
-    // If it's a web tech, use StackBlitz
-    if (["javascript", "typescript", "html", "css"].includes(language.toLowerCase())) {
-      setActiveTab("stackblitz");
+    // For web languages → switch to npm preview mode
+    if (isWebLang) {
+      setPreviewMode("npm");
+      setActiveTab("preview");
       return;
     }
 
-    // Otherwise use backend execution API (like Python)
+    // For Python → use backend E2B execution
     if (!onExecute || !code) return;
-
     setIsExecuting(true);
     setActiveTab("console");
 
@@ -113,6 +127,11 @@ export default function CodeCanvas({
   };
 
   const getPreviewHtml = () => {
+    // Check if code uses npm packages that Fast mode can't handle
+    const externalDeps = detectDependencies(code);
+    if (externalDeps.length > 0) {
+      return generateNpmRequiredHtml(externalDeps);
+    }
     if (language === "html") return generateHtmlPreview(code);
     return generatePreviewHtml(artifact);
   };
@@ -121,22 +140,13 @@ export default function CodeCanvas({
 
   const createRepoAndPublish = async () => {
     setIsSaving(true);
-
-    // 1️⃣ Create repo
-    const projectName =
-      artifact?.title ||
-      mainFile?.path ||
-      `project-${language}`;
+    const projectName = artifact?.title || mainFile?.path || `project-${language}`;
 
     const repoRes = await fetch("/api/github/create-repo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        suggestedName: projectName,
-      }),
+      body: JSON.stringify({ suggestedName: projectName }),
     });
-
-
 
     if (!repoRes.ok) {
       setIsSaving(false);
@@ -146,9 +156,7 @@ export default function CodeCanvas({
     const repo = await repoRes.json();
     setSelectedRepo(repo);
 
-    // 2️⃣ Commit ALL files from artifact
     const files = artifact?.files ?? [];
-
     for (const file of files) {
       await fetch("/api/github/commit", {
         method: "POST",
@@ -163,24 +171,17 @@ export default function CodeCanvas({
       });
     }
 
-    // 3️⃣ Notify user + open repo
     setRepoUrl(repo.url);
     setShowGitHubDialog(true);
     setDialogType("created");
-
-
-
     setIsSaving(false);
   };
 
-
   const saveToGitHub = async () => {
     if (!selectedRepo) return;
-
     setIsSaving(true);
 
     const files = artifact?.files ?? [];
-
     for (const file of files) {
       await fetch("/api/github/commit", {
         method: "POST",
@@ -198,9 +199,6 @@ export default function CodeCanvas({
     setRepoUrl(selectedRepo.url);
     setShowGitHubDialog(true);
     setDialogType("updated");
-
-
-
     setIsSaving(false);
   };
 
@@ -208,22 +206,26 @@ export default function CodeCanvas({
     const res = await fetch("/api/github/status");
     const status = await res.json();
 
-    // 1️⃣ Not connected → OAuth
     if (!status.connected) {
       window.location.href = "/api/github/auth";
       return;
     }
 
-    // 2️⃣ Connected but no repo → create + publish
     if (status.connected && !selectedRepo) {
       await createRepoAndPublish();
       return;
     }
 
-    // 3️⃣ Repo exists → update files
     await saveToGitHub();
   };
 
+  /* ---------------- Tab config ---------------- */
+
+  const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
+    { key: "code", label: "Code", icon: <Code className="w-3 h-3" /> },
+    { key: "preview", label: "Preview", icon: <Eye className="w-3 h-3" /> },
+    { key: "console", label: "Console", icon: <Terminal className="w-3 h-3" /> },
+  ];
 
   /* ---------------- UI ---------------- */
 
@@ -257,12 +259,7 @@ export default function CodeCanvas({
             )}
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopy}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-          >
+          <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 w-7 sm:h-8 sm:w-8 p-0">
             {copied ? (
               <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
             ) : (
@@ -270,23 +267,18 @@ export default function CodeCanvas({
             )}
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDownload}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0 hidden sm:flex"
-          >
+          <Button variant="ghost" size="sm" onClick={handleDownload} className="h-7 w-7 sm:h-8 sm:w-8 p-0 hidden sm:flex">
             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
 
-          {isExecutableLanguage(language) && (
+          {(isExecutableLanguage(language) || isWebLang) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleExecute}
               disabled={isExecuting}
               className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-              title={["javascript", "typescript", "html", "css"].includes(language.toLowerCase()) ? "Run in StackBlitz" : "Run Code"}
+              title={isWebLang ? "Run with npm" : "Run Code"}
             >
               {isExecuting ? (
                 <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-green-500" />
@@ -296,49 +288,94 @@ export default function CodeCanvas({
             </Button>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-          >
+          <Button variant="ghost" size="sm" onClick={onClose} className="h-7 w-7 sm:h-8 sm:w-8 p-0">
             <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
-        {["code", "preview", "console", "stackblitz"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab as TabType)}
-            className={`px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === tab
-              ? "border-blue-500 text-blue-600 dark:text-blue-400"
-              : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+      <div className="flex items-center border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        {/* Tab buttons */}
+        <div className="flex">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Fast ⚡ / npm 📦 toggle — only on Preview tab for web languages */}
+        {activeTab === "preview" && isWebLang && (
+          <div className="ml-auto mr-2 flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+            <button
+              onClick={() => setPreviewMode("fast")}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
+                previewMode === "fast"
+                  ? "bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
+              }`}
+              title="Fast preview (CDN-based, instant)"
+            >
+              <Zap className="w-3 h-3" />
+              Fast
+            </button>
+            <button
+              onClick={() => setPreviewMode("npm")}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
+                previewMode === "npm"
+                  ? "bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
+              }`}
+              title="npm mode (WebContainer, real packages)"
+            >
+              <Package className="w-3 h-3" />
+              npm
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
-
+        {/* Code tab */}
         {activeTab === "code" && (
           <pre className="h-full p-2 sm:p-4 text-xs sm:text-sm font-mono overflow-auto bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
             {code}
           </pre>
         )}
 
+        {/* Preview tab */}
         {activeTab === "preview" && (
-          <iframe
-            srcDoc={getPreviewHtml()}
-            className="w-full h-full border-0 bg-white"
-          />
+          <>
+            {previewMode === "fast" ? (
+              /* Fast mode: CDN-based iframe preview */
+              <iframe
+                srcDoc={getPreviewHtml()}
+                className="w-full h-full border-0 bg-white"
+                title="Fast Preview"
+              />
+            ) : (
+              /* npm mode: WebContainer preview */
+              <WebContainerPreview
+                code={code}
+                language={language}
+                title={artifact.title}
+              />
+            )}
+          </>
         )}
 
+        {/* Console tab */}
         {activeTab === "console" && (
           <div className="h-full p-2 sm:p-4 font-mono text-xs sm:text-sm bg-gray-950 text-green-400 overflow-auto">
             {executionResult?.error && (
@@ -359,20 +396,8 @@ export default function CodeCanvas({
             )}
           </div>
         )}
-
-        {activeTab === "stackblitz" && (
-          <div className="h-full">
-            <StackBlitzEmbed
-              template={language === "html" ? "html" : "node"}
-              files={artifact.files.map((f) => ({
-                path: f.path || `index.${language}`,
-                content: f.content,
-              }))}
-              title={artifact.title || "QueryMate Code"}
-            />
-          </div>
-        )}
       </div>
+
       <GitHubSuccessDialog
         open={showGitHubDialog}
         onOpenChange={setShowGitHubDialog}
@@ -388,8 +413,6 @@ export default function CodeCanvas({
             : "Your existing repository has been updated."
         }
       />
-
-
     </div>
   );
 }
@@ -400,7 +423,7 @@ interface ResizableSplitProps {
   left: React.ReactNode;
   right: React.ReactNode;
   isRightVisible: boolean;
-  hasContent?: boolean; // Whether there's actual content to show (e.g., artifact)
+  hasContent?: boolean;
   onCloseRight: () => void;
 }
 
@@ -415,7 +438,6 @@ export function ResizableSplit({
   const [isMobile, setIsMobile] = useState(false);
   const isDragging = useRef(false);
 
-  // Detect mobile screen size
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -427,7 +449,6 @@ export function ResizableSplit({
 
   const handleMouseDown = () => {
     isDragging.current = true;
-
     const onMove = (e: MouseEvent) =>
       isDragging.current && setRightWidth((w) => Math.max(280, Math.min(w - e.movementX, window.innerWidth - 400)));
     const onUp = () => {
@@ -435,12 +456,10 @@ export function ResizableSplit({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
 
-  // Mobile: Only show full-screen overlay when there's actual content
   if (isMobile) {
     return (
       <div className="flex h-full relative">
@@ -454,10 +473,9 @@ export function ResizableSplit({
     );
   }
 
-  // Desktop: Side-by-side with resizable divider
   return (
     <div className="flex h-full">
-      <div className={`flex-1 min-w-0 transition-all duration-200 ${isRightVisible ? "" : ""}`}>
+      <div className={`flex-1 min-w-0 transition-all duration-200`}>
         {left}
       </div>
       {isRightVisible && (
@@ -475,6 +493,5 @@ export function ResizableSplit({
         </>
       )}
     </div>
-
   );
 }

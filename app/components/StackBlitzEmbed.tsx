@@ -15,15 +15,28 @@ export default function StackBlitzEmbed({ files, title = "QueryMate Project", te
     const embedRef = useRef<HTMLDivElement>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
+    /** Replace non-runnable extensions (e.g. .txt, .md) with the correct one for the template. */
+    const sanitizePath = (path: string): string => {
+        const extensionMap: Record<string, string> = {
+            node: ".js",
+            javascript: ".js",
+            typescript: ".ts",
+            "create-react-app": ".jsx",
+            html: ".html",
+        };
+        const target = extensionMap[template] ?? ".js";
+        return path.replace(/\.(txt|text|md|log)$/i, target);
+    };
+
     const getProject = () => {
         const projectFiles: Record<string, string> = {};
         files.forEach(f => {
-            projectFiles[f.path] = f.content;
+            projectFiles[sanitizePath(f.path)] = f.content;
         });
 
         // Ensure package.json exists for node template
         if (template === "node" && !projectFiles["package.json"]) {
-            const mainFile = files[0]?.path || "index.js";
+            const mainFile = sanitizePath(files[0]?.path || "index.js");
             projectFiles["package.json"] = JSON.stringify({
                 name: "querymate-project",
                 dependencies: {
@@ -42,28 +55,62 @@ export default function StackBlitzEmbed({ files, title = "QueryMate Project", te
     };
 
     useEffect(() => {
-        if (!embedRef.current) return;
+        const container = embedRef.current;
+        if (!container) return;
 
-        try {
-            sdk.embedProject(embedRef.current, getProject(), {
-                height: "100%",
-                width: "100%",
-                hideExplorer: false,
-                hideNavigation: false,
-                forceEmbedLayout: true,
-                openFile: files[0]?.path || "index.js",
-            }).then(() => {
-                setIsLoaded(true);
-            }).catch(err => {
-                console.error("Error embedding StackBlitz", err);
+        let cancelled = false;
+
+        const embed = () => {
+            if (cancelled || !container) return;
+
+            // Clear any previously embedded iframe so SDK gets a fresh element
+            container.innerHTML = "";
+            setIsLoaded(false);
+
+            try {
+                sdk.embedProject(container, getProject(), {
+                    height: "100%",
+                    width: "100%",
+                    hideExplorer: false,
+                    hideNavigation: false,
+                    forceEmbedLayout: true,
+                    openFile: sanitizePath(files[0]?.path || "index.js"),
+                }).then(() => {
+                    if (!cancelled) setIsLoaded(true);
+                }).catch(err => {
+                    console.error("Error embedding StackBlitz", err);
+                });
+            } catch (e) {
+                console.error("Failed to embed StackBlitz", e);
+            }
+        };
+
+        // Wait until the container has non-zero dimensions before embedding
+        // (the element may be inside a hidden tab and have 0x0 size initially)
+        if (container.offsetWidth > 0 && container.offsetHeight > 0) {
+            embed();
+        } else {
+            const observer = new ResizeObserver((entries) => {
+                const entry = entries[0];
+                if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                    observer.disconnect();
+                    embed();
+                }
             });
-        } catch (e) {
-            console.error("Failed to embed StackBlitz", e);
+            observer.observe(container);
+            return () => {
+                cancelled = true;
+                observer.disconnect();
+            };
         }
+
+        return () => {
+            cancelled = true;
+        };
     }, [files, title, template]);
 
     const handleOpenInNewTab = () => {
-        sdk.openProject(getProject(), { openFile: files[0]?.path });
+        sdk.openProject(getProject(), { openFile: sanitizePath(files[0]?.path) });
     };
 
     return (

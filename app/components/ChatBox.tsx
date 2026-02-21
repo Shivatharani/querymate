@@ -1087,6 +1087,7 @@ const files = [
                     disabled={isTyping}
                     className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center justify-center shadow-sm hover:shadow-md transition-all disabled:opacity-50 text-gray-900 dark:text-gray-100"
                     aria-label="Attach file"
+                    suppressHydrationWarning
                   >
                     <span className="text-xl font-semibold leading-none flex items-center justify-center relative -top-[4px]">
                       +
@@ -1097,6 +1098,7 @@ const files = [
                     type="button"
                     onClick={toggleVoiceInput}
                     disabled={!speechSupported || isTyping}
+                    suppressHydrationWarning
                     className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm transition-all disabled:opacity-50 ${
                       isListening
                         ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
@@ -1115,6 +1117,7 @@ const files = [
                     type="button"
                     onClick={() => setSearchEnabled(!searchEnabled)}
                     disabled={isTyping}
+                    suppressHydrationWarning
                     className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${
                       searchEnabled
                         ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
@@ -1130,6 +1133,7 @@ const files = [
                     onClick={() => setIsCanvasOpen(!isCanvasOpen)}
                     disabled={isTyping}
                     title="Canvas Mode - AI generates complete, previewable code"
+                    suppressHydrationWarning
                     className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${
                       isCanvasOpen
                         ? "bg-purple-600 dark:bg-purple-500 border border-purple-600 dark:border-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-400"
@@ -1145,7 +1149,7 @@ const files = [
                     onValueChange={setSelectedModel}
                     disabled={isTyping}
                   >
-                    <PromptInputSelectTrigger className="h-8 sm:h-10 w-fit rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 sm:px-2.5 shadow-sm hover:shadow-md text-xs font-medium text-gray-900 dark:text-gray-100 truncate max-w-[80px] sm:max-w-[120px]">
+                    <PromptInputSelectTrigger suppressHydrationWarning className="h-8 sm:h-10 w-fit rounded-lg sm:rounded-xl bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 px-2 sm:px-2.5 shadow-sm hover:shadow-md text-xs font-medium text-gray-900 dark:text-gray-100 truncate max-w-[80px] sm:max-w-[120px]">
                       <span className="truncate text-xs">
                         {MODELS[selectedModel]?.name ?? selectedModel}
                       </span>
@@ -1167,6 +1171,7 @@ const files = [
                 <button
                   type="submit"
                   disabled={isTyping || (!input.trim() && files.length === 0)}
+                  suppressHydrationWarning
                   className={`h-8 sm:h-12 px-2 sm:px-4 rounded-lg sm:rounded-xl flex items-center justify-center gap-1 sm:gap-2 font-semibold transition-all shadow-lg flex-shrink-0 ${
                     isTyping || (!input.trim() && files.length === 0)
                       ? "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
