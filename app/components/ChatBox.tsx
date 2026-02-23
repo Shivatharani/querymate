@@ -1208,6 +1208,7 @@ export default function ChatBox({
         setIsCanvasOpen(false);
       }}
       consoleOutput={consoleOutput}
+      onExecute={handleExecuteCode}
       conversationId={conversationId}
     />
   ) : (
