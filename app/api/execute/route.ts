@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     try {
       console.log("🚀 E2B: Executing code...");
-      
+
       let result;
       if (language.toLowerCase() === "python" || language.toLowerCase() === "py") {
         result = await sandbox.runCode(code);
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         result = await sandbox.runCode(code, { language: "javascript" });
       }
 
-      console.log("🚀 E2B: Execution complete", { 
+      console.log("🚀 E2B: Execution complete", {
         stdout: result.logs?.stdout?.length || 0,
         stderr: result.logs?.stderr?.length || 0,
         results: result.results?.length || 0
@@ -68,15 +68,16 @@ export async function POST(req: NextRequest) {
       // Extract output, errors, and images
       const stdout = result.logs?.stdout || [];
       const stderr = result.logs?.stderr || [];
-      
-      const output = stdout.join("\n");
+
+      // newer @e2b/code-interpreter returns combined string in .text
+      const output = result.text || stdout.join("\n");
       // ExecutionError has: name, value, traceback (not message)
-      const error = stderr.length > 0 
-        ? stderr.join("\n") 
-        : result.error 
-          ? `${result.error.name}: ${result.error.value}\n${result.error.traceback}` 
+      const error = result.error
+        ? `${result.error.name}: ${result.error.value}\n${result.error.traceback}`
+        : stderr.length > 0
+          ? stderr.join("\n")
           : "";
-      
+
       // Extract base64 images from results (e.g., matplotlib plots)
       const images: string[] = [];
       if (result.results) {
