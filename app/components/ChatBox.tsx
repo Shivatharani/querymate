@@ -312,6 +312,8 @@ export default function ChatBox({
       html: "html",
       css: "css",
       json: "json",
+      jsx: "jsx",
+      tsx: "tsx",
     };
 
     const extension = extensionMap[language] || "txt";
@@ -1105,8 +1107,8 @@ export default function ChatBox({
                     disabled={!speechSupported || isTyping}
                     suppressHydrationWarning
                     className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm transition-all disabled:opacity-50 ${isListening
-                        ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
-                        : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
+                      ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+                      : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
                       }`}
                     aria-label={isListening ? "Stop voice input" : "Start voice input"}
                   >
@@ -1123,8 +1125,8 @@ export default function ChatBox({
                     disabled={isTyping}
                     suppressHydrationWarning
                     className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${searchEnabled
-                        ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
-                        : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
+                      ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
+                      : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
                       }`}
                   >
                     <span className="text-sm">🔍</span>
@@ -1138,8 +1140,8 @@ export default function ChatBox({
                     title="Canvas Mode - AI generates complete, previewable code"
                     suppressHydrationWarning
                     className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${isCanvasOpen
-                        ? "bg-purple-600 dark:bg-purple-500 border border-purple-600 dark:border-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-400"
-                        : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
+                      ? "bg-purple-600 dark:bg-purple-500 border border-purple-600 dark:border-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-400"
+                      : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
                       }`}
                   >
                     <LayoutIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -1175,8 +1177,8 @@ export default function ChatBox({
                   disabled={isTyping || (!input.trim() && files.length === 0)}
                   suppressHydrationWarning
                   className={`h-8 sm:h-12 px-2 sm:px-4 rounded-lg sm:rounded-xl flex items-center justify-center gap-1 sm:gap-2 font-semibold transition-all shadow-lg flex-shrink-0 ${isTyping || (!input.trim() && files.length === 0)
-                      ? "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
-                      : "bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                    ? "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
+                    : "bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
                     } min-w-fit`}
                   aria-label="Send message"
                 >
@@ -1206,7 +1208,7 @@ export default function ChatBox({
         setIsCanvasOpen(false);
       }}
       consoleOutput={consoleOutput}
-      onExecute={handleExecuteCode}
+      conversationId={conversationId}
     />
   ) : (
     <div className="h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-8 text-center relative">

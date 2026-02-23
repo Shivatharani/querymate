@@ -35,11 +35,13 @@ import dynamic from "next/dynamic";
 // Lazy-load WebContainerPreview to avoid SSR issues with WebContainer API
 const WebContainerPreview = dynamic(
   () => import("./WebContainerPreview"),
-  { ssr: false, loading: () => (
-    <div className="h-full flex items-center justify-center bg-gray-950">
-      <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-    </div>
-  )}
+  {
+    ssr: false, loading: () => (
+      <div className="h-full flex items-center justify-center bg-gray-950">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+      </div>
+    )
+  }
 );
 
 interface CodeCanvasProps {
@@ -47,6 +49,7 @@ interface CodeCanvasProps {
   onClose: () => void;
   consoleOutput: ConsoleLog[];
   onExecute?: (code: string, language: string) => Promise<ExecutionResult>;
+  conversationId?: string | null;
 }
 
 type TabType = "code" | "preview" | "console";
@@ -57,6 +60,7 @@ export default function CodeCanvas({
   onClose,
   consoleOutput,
   onExecute,
+  conversationId,
 }: CodeCanvasProps) {
   const [activeTab, setActiveTab] = useState<TabType>("preview");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("fast");
@@ -66,7 +70,6 @@ export default function CodeCanvas({
     useState<ExecutionResult | null>(null);
 
   /* ---------------- GitHub state ---------------- */
-  const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showGitHubDialog, setShowGitHubDialog] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
@@ -138,70 +141,6 @@ export default function CodeCanvas({
 
   /* ---------------- GitHub publish logic ---------------- */
 
-  const createRepoAndPublish = async () => {
-    setIsSaving(true);
-    const projectName = artifact?.title || mainFile?.path || `project-${language}`;
-
-    const repoRes = await fetch("/api/github/create-repo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ suggestedName: projectName }),
-    });
-
-    if (!repoRes.ok) {
-      setIsSaving(false);
-      throw new Error("Failed to create GitHub repository");
-    }
-
-    const repo = await repoRes.json();
-    setSelectedRepo(repo);
-
-    const files = artifact?.files ?? [];
-    for (const file of files) {
-      await fetch("/api/github/commit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          owner: repo.owner,
-          repo: repo.repoName,
-          path: file.path || `index.${file.language || "txt"}`,
-          content: file.content,
-          message: `Add ${file.path || "file"} from QueryMate`,
-        }),
-      });
-    }
-
-    setRepoUrl(repo.url);
-    setShowGitHubDialog(true);
-    setDialogType("created");
-    setIsSaving(false);
-  };
-
-  const saveToGitHub = async () => {
-    if (!selectedRepo) return;
-    setIsSaving(true);
-
-    const files = artifact?.files ?? [];
-    for (const file of files) {
-      await fetch("/api/github/commit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          owner: selectedRepo.owner,
-          repo: selectedRepo.repoName,
-          path: file.path || `index.${file.language || "txt"}`,
-          content: file.content,
-          message: `Update ${file.path || "file"} via QueryMate`,
-        }),
-      });
-    }
-
-    setRepoUrl(selectedRepo.url);
-    setShowGitHubDialog(true);
-    setDialogType("updated");
-    setIsSaving(false);
-  };
-
   const handleGitHubClick = async () => {
     setIsSaving(true);
     try {
@@ -213,14 +152,33 @@ export default function CodeCanvas({
         return;
       }
 
-      if (status.connected && !selectedRepo) {
-        await createRepoAndPublish();
-        return;
+      if (!conversationId) {
+        throw new Error("Cannot sync without an active conversation ID");
       }
 
-      await saveToGitHub();
+      const projectName = artifact?.title || mainFile?.path || `project-${language}`;
+      const syncRes = await fetch("/api/github/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          suggestedName: projectName,
+          files: artifact?.files ?? []
+        }),
+      });
+
+      if (!syncRes.ok) {
+        throw new Error("Failed to sync GitHub repository");
+      }
+
+      const syncResult = await syncRes.json();
+
+      setRepoUrl(syncResult.repoUrl);
+      setShowGitHubDialog(true);
+      setDialogType(syncResult.isNew ? "created" : "updated");
     } catch (error) {
       console.error("GitHub publish error:", error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -308,11 +266,10 @@ export default function CodeCanvas({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.key
+              className={`flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
                   ? "border-blue-500 text-blue-600 dark:text-blue-400"
                   : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
+                }`}
             >
               {tab.icon}
               {tab.label}
@@ -325,11 +282,10 @@ export default function CodeCanvas({
           <div className="ml-auto mr-2 flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             <button
               onClick={() => setPreviewMode("fast")}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
-                previewMode === "fast"
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${previewMode === "fast"
                   ? "bg-white dark:bg-gray-700 text-yellow-600 dark:text-yellow-400 shadow-sm"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-              }`}
+                }`}
               title="Fast preview (CDN-based, instant)"
             >
               <Zap className="w-3 h-3" />
@@ -337,11 +293,10 @@ export default function CodeCanvas({
             </button>
             <button
               onClick={() => setPreviewMode("npm")}
-              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${
-                previewMode === "npm"
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] sm:text-xs font-medium transition-all ${previewMode === "npm"
                   ? "bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-700"
-              }`}
+                }`}
               title="npm mode (WebContainer, real packages)"
             >
               <Package className="w-3 h-3" />
