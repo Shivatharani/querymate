@@ -203,20 +203,26 @@ export default function CodeCanvas({
   };
 
   const handleGitHubClick = async () => {
-    const res = await fetch("/api/github/status");
-    const status = await res.json();
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/github/status");
+      const status = await res.json();
 
-    if (!status.connected) {
-      window.location.href = "/api/github/auth";
-      return;
+      if (!status.connected) {
+        window.location.href = "/api/github/auth";
+        return;
+      }
+
+      if (status.connected && !selectedRepo) {
+        await createRepoAndPublish();
+        return;
+      }
+
+      await saveToGitHub();
+    } catch (error) {
+      console.error("GitHub publish error:", error);
+      setIsSaving(false);
     }
-
-    if (status.connected && !selectedRepo) {
-      await createRepoAndPublish();
-      return;
-    }
-
-    await saveToGitHub();
   };
 
   /* ---------------- Tab config ---------------- */

@@ -295,31 +295,36 @@ export default function ChatBox({
   const scrollRootRef = useRef<HTMLDivElement>(null);
 
   const hasHistory = conversationId !== null && messages.length > 0;
-  const showCenterPrompt = !hasHistory && !isTyping && messages.length === 0 && !input;
+  const showCenterPrompt = !hasHistory && !isTyping && messages.length === 0;
 
   // Canvas mode: handler to show code in preview panel
   const showPreview = (code: string, language: string, messageContent?: string) => {
-   const extensionMap: Record<string, string> = {
-  javascript: "js",
-  typescript: "ts",
-  python: "py",
-  cpp: "cpp",
-  c: "c",
-  java: "java",
-  go: "go",
-  rust: "rs",
-};
+    const extensionMap: Record<string, string> = {
+      javascript: "js",
+      typescript: "ts",
+      python: "py",
+      cpp: "cpp",
+      c: "c",
+      java: "java",
+      go: "go",
+      rust: "rs",
+      markdown: "md",
+      html: "html",
+      css: "css",
+      json: "json",
+    };
 
-const extension = extensionMap[language] || "txt";
+    const extension = extensionMap[language] || "txt";
+    const path = language === "markdown" ? "README.md" : `main.${extension}`;
 
-const files = [
-  {
-    path: `main.${extension}`,
-    content: code,
-    language,
-  },
-];
-    
+    const files = [
+      {
+        path,
+        content: code,
+        language,
+      },
+    ];
+
     // Extract CSS from the message content if available
     if (messageContent) {
       const cssBlocks = extractCssFromMarkdown(messageContent);
@@ -327,7 +332,7 @@ const files = [
         files.push({ path: "styles.css", content: cssBlocks.join("\n\n"), language: "css" });
       }
     }
-    
+
     const artifact: Artifact = {
       id: Date.now().toString(),
       title: `Preview - ${language.toUpperCase()}`,
@@ -387,7 +392,7 @@ const files = [
     if (!tokenStatus) return true;
 
     const percentage = Math.round(tokenStatus.tokensPercentage);
-    
+
     // Show token depleted modal when 100% reached for ALL users (free and pro)
     if (tokenStatus.tokensRemaining <= 0 || percentage >= 100) {
       setShowTokenDepletedModal(true);
@@ -408,7 +413,7 @@ const files = [
           },
         },
       );
-      
+
       // Reset flag after notification so it can show again
       setTimeout(() => setTokenWarningShown(false), 6000);
     }
@@ -1099,11 +1104,10 @@ const files = [
                     onClick={toggleVoiceInput}
                     disabled={!speechSupported || isTyping}
                     suppressHydrationWarning
-                    className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm transition-all disabled:opacity-50 ${
-                      isListening
+                    className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm transition-all disabled:opacity-50 ${isListening
                         ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
                         : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
-                    }`}
+                      }`}
                     aria-label={isListening ? "Stop voice input" : "Start voice input"}
                   >
                     {isListening ? (
@@ -1118,11 +1122,10 @@ const files = [
                     onClick={() => setSearchEnabled(!searchEnabled)}
                     disabled={isTyping}
                     suppressHydrationWarning
-                    className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${
-                      searchEnabled
+                    className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${searchEnabled
                         ? "bg-black dark:bg-white border border-black dark:border-white text-white dark:text-black hover:bg-gray-900 dark:hover:bg-gray-100"
                         : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
-                    }`}
+                      }`}
                   >
                     <span className="text-sm">🔍</span>
                     <span className="hidden sm:inline text-xs">{searchEnabled ? "On" : "Search"}</span>
@@ -1134,11 +1137,10 @@ const files = [
                     disabled={isTyping}
                     title="Canvas Mode - AI generates complete, previewable code"
                     suppressHydrationWarning
-                    className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${
-                      isCanvasOpen
+                    className={`h-8 sm:h-10 px-2 sm:px-3 rounded-lg sm:rounded-xl text-xs font-medium shadow-sm transition-all disabled:opacity-50 flex items-center gap-1 ${isCanvasOpen
                         ? "bg-purple-600 dark:bg-purple-500 border border-purple-600 dark:border-purple-500 text-white hover:bg-purple-700 dark:hover:bg-purple-400"
                         : "bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 hover:shadow-md text-black dark:text-white"
-                    }`}
+                      }`}
                   >
                     <LayoutIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline text-xs">{isCanvasOpen ? "On" : "Canvas"}</span>
@@ -1172,11 +1174,10 @@ const files = [
                   type="submit"
                   disabled={isTyping || (!input.trim() && files.length === 0)}
                   suppressHydrationWarning
-                  className={`h-8 sm:h-12 px-2 sm:px-4 rounded-lg sm:rounded-xl flex items-center justify-center gap-1 sm:gap-2 font-semibold transition-all shadow-lg flex-shrink-0 ${
-                    isTyping || (!input.trim() && files.length === 0)
+                  className={`h-8 sm:h-12 px-2 sm:px-4 rounded-lg sm:rounded-xl flex items-center justify-center gap-1 sm:gap-2 font-semibold transition-all shadow-lg flex-shrink-0 ${isTyping || (!input.trim() && files.length === 0)
                       ? "bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none"
                       : "bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 text-white dark:text-black hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-                  } min-w-fit`}
+                    } min-w-fit`}
                   aria-label="Send message"
                 >
                   <>
