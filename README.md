@@ -34,13 +34,31 @@ A modern, powerful AI chat application that lets you interact with multiple AI p
 - Scroll-to-bottom on new messages
 - Loading states and error handling
 
-### 📱 Conversation Management
-
 - Create unlimited conversations
 - Update conversation titles
 - Delete conversations with cascade message deletion
 - Load chat history instantly
 - Sidebar navigation between chats
+
+### 💻 AI Code Sandbox
+
+- **Interactive Execution**: Run Python and JavaScript code in secure, isolated sandboxes
+- **Integrated Code Editor**: Feature-rich Monaco editor for writing and editing code
+- **Rich Output Support**: Render stdout, errors, and base64 plots (e.g., matplotlib figures)
+- **Live Previews**: Component rendering and WebContainer integration for web projects
+- **StackBlitz Integration**: Open projects in StackBlitz for advanced development
+
+### 🔄 GitHub Integration
+
+- **Direct Synchronization**: Sync your sandbox projects directly to GitHub
+- **Auto-Repo Creation**: Automatically creates repositories for your QueryMate projects
+- **Version Control**: Manage your AI-generated code with industry-standard tools
+
+### 💳 Credits & Subscriptions
+
+- **Tiered Plans**: Choose between Free, Pro, and Pro Max tiers
+- **Usage Limits**: Flexible daily token limits based on your subscription
+- **Real-time Stats**: Track your AI usage and token consumption with live alerts
 
 ## 🚀 Tech Stack
 
@@ -54,7 +72,8 @@ A modern, powerful AI chat application that lets you interact with multiple AI p
   - Perplexity AI (via @ai-sdk/perplexity)
   - Amazon Bedrock (via @ai-sdk/amazon-bedrock)
 - **AI SDK**: Vercel AI SDK
-- **UI Components**: Radix UI
+- **Sandboxing**: [@e2b/code-interpreter](https://e2b.dev/)
+- **UI Components**: Radix UI, Lucide Icons
 - **Styling**: Tailwind CSS
 - **Markdown**: react-markdown
 
@@ -125,6 +144,9 @@ AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
 AWS_REGION=us-east-1
 BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20240620-v1:0
+
+# --- E2B SANDBOX ---
+E2B_API_KEY=your_e2b_api_key
 
 ```
 
@@ -436,6 +458,109 @@ fetch("/api/chat", {
 });
 ```
 
+### Sandbox & Execution Endpoints
+
+#### Execute Code
+Run Python or JavaScript code in a secure sandbox.
+
+```http
+POST /api/execute
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "code": "print('Hello from QueryMate!')",
+  "language": "python"
+}
+```
+
+**Response:**
+```json
+{
+  "output": "Hello from QueryMate!",
+  "logs": [
+    { "type": "log", "message": "Hello from QueryMate!", "timestamp": "..." }
+  ],
+  "images": ["base64_image_data_if_any"]
+}
+```
+
+### GitHub Synchronization
+
+#### Sync Sandbox to GitHub
+Create or update a GitHub repository with your sandbox files.
+
+```http
+POST /api/github/sync
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "conversationId": "conv_789",
+  "files": [
+    { "path": "main.py", "content": "print('Hello world')", "language": "python" }
+  ],
+  "suggestedName": "My AI Project"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "repoUrl": "https://github.com/user/querymate-conv789",
+  "isNew": true
+}
+```
+
+### Credits & Subscription Endpoints
+
+#### Get Token Usage
+Retrieve current daily token consumption and limits.
+
+```http
+GET /api/credits
+Authorization: Bearer YOUR_TOKEN_HERE
+```
+
+**Response:**
+```json
+{
+  "tokensUsed": 450,
+  "tokensLimit": 5000,
+  "tokensRemaining": 4550,
+  "subscriptionTier": "free",
+  "shouldShowAlert": false
+}
+```
+
+#### Upgrade Subscription
+Change the user's subscription tier.
+
+```http
+POST /api/subscription/upgrade
+Authorization: Bearer YOUR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "tier": "pro"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "subscription": {
+    "tier": "pro",
+    "dailyTokens": 50000,
+    "maxOutputTokens": 4000
+  }
+}
+```
+
+> **Note**: These endpoints require a valid User Session. Ensure the user is authenticated via GitHub/Google or Email before calling.
+
 > **Note**: The `/api/chat` endpoint returns streaming responses. For testing in Postman, you'll see status 200 but the response body streams over time. Check the database `messages` table to verify AI responses are saved.
 
 ## 🔑 Key Concepts
@@ -580,6 +705,41 @@ messages
 
 > **Note**: The `/api/chat` endpoint returns streaming responses. In Postman you'll see 200 status, but the response streams over time. Check your database `messages` table to verify AI responses are saved correctly.
 
+---
+
+## 💻 AI Code Sandbox
+
+The AI Code Sandbox provides a secure and isolated environment for executing code directly within your conversation. Powered by [E2B](https://e2b.dev/), it allows QueryMate to act as an advanced coding assistant.
+
+- **Supported Languages**: Python (3.10+), JavaScript/Node.js.
+- **Rich Visualization**: Supports rendering base64 encoded images, allowing you to view plots from libraries like `matplotlib` or `seaborn` directly in the chat.
+- **Persistent State**: Maintain session context across multiple messages within a single conversation.
+
+## 🔄 GitHub Synchronization
+
+Seamlessly transition from prototype to production with QueryMate's GitHub sync feature.
+
+- **One-Click Sync**: Transform your sandbox files into a GitHub repository.
+- **Automatic Setup**: QueryMate handles repository creation, initial commits, and file management.
+- **Version Control Integration**: Utilize standard GitHub workflows for AI-generated code.
+
+## 💳 Usage & Credit System
+
+QueryMate uses a token-based credit system to manage AI provider costs and ensure fair resource distribution.
+
+### Subscription Tiers
+
+| Tier      | Daily Token Limit | Max Output Tokens | Features                |
+| --------- | ----------------- | ----------------- | ----------------------- |
+| **Free**  | 5,000             | 1,000             | Standard AI Models      |
+| **Pro**   | 50,000            | 4,000             | Priority Access, Sandbox |
+| **Pro Max**| Unlimited         | 8,000             | Enterprise Models, Sync |
+
+- **Automatic Reset**: Daily token limits reset every 24 hours at midnight.
+- **Usage Alerts**: Integrated notifications when you've consumed 80%, 90%, and 100% of your daily credits.
+
+---
+
 ## 🚀 Deployment
 
 ### Environment Variables for Production
@@ -713,16 +873,27 @@ The app uses Tailwind CSS with custom configurations:
 QueryMate/
 ├── app/
 │   ├── api/                      # API Routes
+│   │   ├── analytics/            # Usage analytics
 │   │   ├── auth/                 # Authentication endpoints
 │   │   │   ├── [...all]/route.ts    # Better Auth handler
 │   │   │   └── sessions/route.ts    # Session management
 │   │   ├── chat/route.ts         # Main chat endpoint (AI streaming)
 │   │   ├── conversations/route.ts # CRUD for conversations
-│   │   └── messages/route.ts     # Message history
+│   │   ├── credits/route.ts      # Token usage and limits
+│   │   ├── execute/route.ts      # AI Sandbox code execution
+│   │   ├── github/               # GitHub integration
+│   │   │   └── sync/route.ts     # Repository synchronization
+│   │   ├── messages/route.ts     # Message history
+│   │   ├── subscription/         # Subscription management
+│   │   │   └── upgrade/route.ts  # Tier upgrades
+│   │   └── usage/route.ts        # Performance and usage tracking
 │   │
 │   ├── components/               # React Components
 │   │   ├── ChatBox.tsx          # Main chat interface with streaming
 │   │   ├── ChatSidebar.tsx      # Conversation list sidebar
+│   │   ├── CodeCanvas.tsx       # Interactive AI Sandbox UI
+│   │   ├── StackBlitzEmbed.tsx  # StackBlitz sandbox integration
+│   │   ├── WebContainerPreview.tsx # In-browser Node.js runtime
 │   │   ├── AuthLoginForm.tsx    # Login form
 │   │   ├── AuthSignupForm.tsx   # Signup form
 │   │   └── ui/                  # Reusable UI components
@@ -736,6 +907,7 @@ QueryMate/
 │   │   ├── better-auth-client.ts # Auth client hooks
 │   │   ├── schema.ts            # Drizzle ORM schema
 │   │   ├── lib.ts               # Database connection
+│   │   ├── github.ts            # GitHub API utilities
 │   │   └── utils.ts             # Helper functions
 │   │
 │   ├── auth/                     # Auth pages
